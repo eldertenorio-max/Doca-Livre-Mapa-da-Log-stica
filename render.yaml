@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: doca-livre-mapa-logistica
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: VITE_SUPABASE_URL
+        value: https://zbjhaupxhriedfsgtlbj.supabase.co
+      - key: VITE_SUPABASE_ANON_KEY
+        value: sb_publishable_O4fLD0VPNObpqD9lX2fT7A__MYqsFX4

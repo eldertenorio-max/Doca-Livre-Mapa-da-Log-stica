@@ -1,0 +1,31 @@
+# Doca Livre — Mapa da Logística
+
+Portal local para mapear transportadoras, operadores logísticos e fornecedores do setor.
+
+## Como rodar
+
+```bash
+npm install
+npm run dev
+```
+
+Abre em `http://localhost:5174`.
+
+## Abas
+
+- **Painel** — totais e gráficos do cadastro que está no mapa.
+- **Mapa** — ícones por categoria, pesquisa (nome, função, categoria) e página da empresa.
+
+## Pesquisa
+
+- `empilhadeira` → empresas que vendem, alugam ou prestam serviço no equipamento.
+- `peça empilhadeira` → só quem trabalha com peças.
+
+## Publicação
+
+1. Cole `supabase/schema.sql` no [SQL Editor](https://supabase.com/dashboard/project/zbjhaupxhriedfsgtlbj/sql/new) e rode.
+2. `npm run db:apply` envia as ~500 empresas e os acessos Diego/Elder.
+3. Repositório: `https://github.com/eldertenorio-max/Doca-Livre-Mapa-da-Log-stica.git`
+4. No Render, conecte esse repositório. O `render.yaml` já define build, start e as variáveis públicas do Supabase.
+
+Login super: **Diego / diego123** e **Elder / Elder123**.

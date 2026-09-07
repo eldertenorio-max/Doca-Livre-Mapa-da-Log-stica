@@ -1,0 +1,678 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Info } from 'lucide-react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import { useAuth } from '../lib/AuthContext'
+import { CATEGORIAS, NIVEIS_INTEGRACAO, categoriaPorId } from '../lib/categorias'
+import { ORIGEM_META, REGIOES, catValida } from '../lib/painelStats'
+import {
+  aplicarFiltros,
+  cidadesDoCadastro,
+  frasesSugestaoRapida,
+  labelTipoSugestao,
+  semAcento,
+  sugerirBusca,
+  todasFuncoesFiltro,
+  toggleItem,
+  ufsDoCadastro,
+  type SugestaoBusca,
+} from '../lib/search'
+import type { CategoriaId, Empresa, NivelIntegracaoId, OrigemCadastro } from '../types'
+import '../styles/mapa.css'
+
+function pinHtml(e: Empresa) {
+  const cat = categoriaPorId(e.categoria)
+  return `<div class="pin-empresa__inner" style="background:${cat.cor}" title="${e.nome_fantasia}">${cat.emoji}</div>`
+}
+
+function destacarTrecho(texto: string, query: string) {
+  const q = semAcento(query).trim()
+  if (!q) return texto
+  let plain = ''
+  const map: number[] = []
+  for (let i = 0; i < texto.length; i++) {
+    const ch = semAcento(texto[i])
+    if (!ch) continue
+    map.push(i)
+    plain += ch
+  }
+  const idx = plain.indexOf(q)
+  if (idx < 0 || map[idx] == null) return texto
+  const start = map[idx]
+  const endIdx = map[idx + q.length - 1]
+  if (endIdx == null) return texto
+  const end = endIdx + 1
+  return (
+    <>
+      {texto.slice(0, start)}
+      <mark>{texto.slice(start, end)}</mark>
+      {texto.slice(end)}
+    </>
+  )
+}
+
+export function MapaPage() {
+  const { empresas } = useAuth()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const mapEl = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<L.Map | null>(null)
+  const layerRef = useRef<L.LayerGroup | null>(null)
+  const [query, setQuery] = useState('')
+  const catParam = searchParams.get('cat')
+  const [categoria, setCategoria] = useState<CategoriaId | null>(() =>
+    catValida(catParam) ? catParam : null,
+  )
+  const [ufs, setUfs] = useState<string[]>([])
+  const [regioes, setRegioes] = useState<string[]>([])
+  const [niveis, setNiveis] = useState<NivelIntegracaoId[]>([])
+  const [origens, setOrigens] = useState<OrigemCadastro[]>([])
+  const [funcoes, setFuncoes] = useState<string[]>([])
+  const [cidades, setCidades] = useState<string[]>([])
+  const [selecionada, setSelecionada] = useState<string | null>(null)
+  const [sugestoesAbertas, setSugestoesAbertas] = useState(false)
+  const [sugestaoAtiva, setSugestaoAtiva] = useState(0)
+  const [legendaAberta, setLegendaAberta] = useState(false)
+  const [filtroAberto, setFiltroAberto] = useState<string | null>(null)
+  const buscaWrapRef = useRef<HTMLDivElement>(null)
+  const filtrosWrapRef = useRef<HTMLDivElement>(null)
+  const legendaWrapRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (catValida(catParam)) setCategoria(catParam)
+  }, [catParam])
+
+  const filtros = useMemo(
+    () => ({ query, categoria, ufs, regioes, niveis, origens, funcoes, cidades }),
+    [query, categoria, ufs, regioes, niveis, origens, funcoes, cidades],
+  )
+
+  const filtradas = useMemo(() => aplicarFiltros(empresas, filtros), [empresas, filtros])
+
+  const sugestoes = useMemo(() => sugerirBusca(query, empresas, 10), [query, empresas])
+
+  const contagem = useMemo(() => {
+    const base = aplicarFiltros(empresas, { ...filtros, categoria: null })
+    return Object.fromEntries(
+      CATEGORIAS.map((c) => [c.id, base.filter((e) => e.categoria === c.id).length]),
+    ) as Record<CategoriaId, number>
+  }, [filtros, empresas])
+
+  const ufsOpcoes = useMemo(() => ufsDoCadastro(empresas), [empresas])
+  const cidadesOpcoes = useMemo(() => cidadesDoCadastro(empresas), [empresas])
+  const funcoesOpcoes = useMemo(() => todasFuncoesFiltro(), [])
+
+  const chipsAtivos = useMemo(() => {
+    const chips: { key: string; label: string; limpar: () => void }[] = []
+    if (query.trim()) chips.push({ key: 'q', label: `Busca: ${query.trim()}`, limpar: () => setQuery('') })
+    if (categoria) {
+      chips.push({
+        key: 'cat',
+        label: categoriaPorId(categoria).label,
+        limpar: () => {
+          setCategoria(null)
+          navigate('/mapa')
+        },
+      })
+    }
+    for (const uf of ufs) chips.push({ key: `uf-${uf}`, label: uf, limpar: () => setUfs((a) => toggleItem(a, uf)) })
+    for (const r of regioes) {
+      const nome = REGIOES.find((x) => x.id === r)?.label ?? r
+      chips.push({ key: `reg-${r}`, label: nome, limpar: () => setRegioes((a) => toggleItem(a, r)) })
+    }
+    for (const n of niveis) {
+      const nome = NIVEIS_INTEGRACAO.find((x) => x.id === n)?.label ?? n
+      chips.push({ key: `niv-${n}`, label: nome, limpar: () => setNiveis((a) => toggleItem(a, n)) })
+    }
+    for (const o of origens) {
+      chips.push({
+        key: `ori-${o}`,
+        label: ORIGEM_META[o].label,
+        limpar: () => setOrigens((a) => toggleItem(a, o)),
+      })
+    }
+    for (const fn of funcoes) {
+      chips.push({ key: `fn-${fn}`, label: fn, limpar: () => setFuncoes((a) => toggleItem(a, fn)) })
+    }
+    for (const c of cidades) {
+      chips.push({ key: `cid-${c}`, label: c, limpar: () => setCidades((a) => toggleItem(a, c)) })
+    }
+    return chips
+  }, [query, categoria, ufs, regioes, niveis, origens, funcoes, cidades, navigate])
+
+  useEffect(() => {
+    if (!mapEl.current || mapRef.current) return
+    const map = L.map(mapEl.current, {
+      center: [-22.5, -47.2],
+      zoom: 5,
+      minZoom: 4,
+      maxZoom: 16,
+    })
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
+      maxZoom: 19,
+    }).addTo(map)
+    layerRef.current = L.layerGroup().addTo(map)
+    mapRef.current = map
+    window.setTimeout(() => map.invalidateSize(), 120)
+    return () => {
+      map.remove()
+      mapRef.current = null
+      layerRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    const map = mapRef.current
+    const layer = layerRef.current
+    if (!map || !layer) return
+    layer.clearLayers()
+
+    for (const e of filtradas) {
+      const icon = L.divIcon({
+        className: 'pin-empresa',
+        html: pinHtml(e),
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+      })
+      const marker = L.marker([e.lat, e.lng], { icon })
+      const cat = categoriaPorId(e.categoria)
+      marker.bindTooltip(
+        `<strong>${e.nome_fantasia}</strong><br/>${cat.label}<br/>${e.cidade}/${e.uf}`,
+        { direction: 'top', offset: [0, -28] },
+      )
+      marker.on('click', () => {
+        setSelecionada(e.id)
+        navigate(`/empresa/${e.slug}`)
+      })
+      marker.addTo(layer)
+    }
+
+    if (filtradas.length === 1) {
+      map.setView([filtradas[0].lat, filtradas[0].lng], 10)
+    } else if (filtradas.length > 1) {
+      const bounds = L.latLngBounds(filtradas.map((e) => [e.lat, e.lng] as [number, number]))
+      map.fitBounds(bounds.pad(0.18), { maxZoom: 10 })
+    }
+  }, [filtradas, navigate])
+
+  function irPara(e: Empresa) {
+    setSelecionada(e.id)
+    mapRef.current?.setView([e.lat, e.lng], 12)
+  }
+
+  function aplicarSugestao(s: SugestaoBusca) {
+    if (s.tipo !== 'empresa') setQuery('')
+    if (s.tipo === 'funcao') setFuncoes((a) => toggleItem(a, s.texto))
+    else if (s.tipo === 'categoria') {
+      const id = (s.valor as CategoriaId) || CATEGORIAS.find((c) => semAcento(c.label) === semAcento(s.texto))?.id
+      if (id) {
+        setCategoria(id)
+        navigate(`/mapa?cat=${id}`)
+      }
+    } else if (s.tipo === 'uf') setUfs((a) => toggleItem(a, s.valor || s.texto))
+    else if (s.tipo === 'regiao') setRegioes((a) => toggleItem(a, s.valor || s.texto))
+    else if (s.tipo === 'nivel') setNiveis((a) => toggleItem(a, (s.valor || s.texto) as NivelIntegracaoId))
+    else if (s.tipo === 'origem') setOrigens((a) => toggleItem(a, (s.valor || s.texto) as OrigemCadastro))
+    else if (s.tipo === 'lugar') setCidades((a) => toggleItem(a, s.valor || s.texto))
+    else if (s.tipo === 'empresa') {
+      setQuery(s.texto)
+      const e = empresas.find((x) => semAcento(x.nome_fantasia) === semAcento(s.texto) || semAcento(x.razao_social) === semAcento(s.texto))
+      if (e) irPara(e)
+    }
+    setSugestoesAbertas(false)
+    setSugestaoAtiva(0)
+  }
+
+  function limparFiltros() {
+    setQuery('')
+    setCategoria(null)
+    setUfs([])
+    setRegioes([])
+    setNiveis([])
+    setOrigens([])
+    setFuncoes([])
+    setCidades([])
+    navigate('/mapa')
+  }
+
+  function setCat(next: CategoriaId | null) {
+    setCategoria(next)
+    navigate(next ? `/mapa?cat=${next}` : '/mapa')
+  }
+
+  useEffect(() => {
+    function fecharFora(ev: MouseEvent) {
+      const alvo = ev.target as Node
+      if (!buscaWrapRef.current?.contains(alvo)) {
+        setSugestoesAbertas(false)
+      }
+      if (!filtrosWrapRef.current?.contains(alvo)) {
+        setFiltroAberto(null)
+      }
+      if (!legendaWrapRef.current?.contains(alvo)) {
+        setLegendaAberta(false)
+      }
+    }
+    document.addEventListener('mousedown', fecharFora)
+    return () => document.removeEventListener('mousedown', fecharFora)
+  }, [])
+
+  return (
+    <div className="mapa-log animate-fade-up">
+      <header className="mapa-log__head">
+        <div>
+          <h1 className="mapa-log__title">Mapa da Logística</h1>
+          <p className="mapa-log__sub">
+            Clique no campo, digite e escolha a sugestão. O mapa mostra só as empresas selecionadas.
+          </p>
+        </div>
+      </header>
+
+      <div className="mapa-log__layout">
+        <aside className="mapa-log__lista">
+          <div className="mapa-log__search">
+            <label className="mapa-log__cats-title" htmlFor="busca-mapa">
+              Pesquisar
+            </label>
+            <div className="mapa-log__busca-wrap" ref={buscaWrapRef}>
+              <input
+                id="busca-mapa"
+                className="mapa-log__input"
+                placeholder="Clique e escolha, ou digite: empilhadeira, SP, WMS…"
+                value={query}
+                autoComplete="off"
+                spellCheck={false}
+                role="combobox"
+                aria-expanded={sugestoesAbertas && sugestoes.length > 0}
+                aria-controls="sugestoes-busca"
+                aria-autocomplete="list"
+                aria-activedescendant={
+                  sugestoesAbertas && sugestoes[sugestaoAtiva]
+                    ? `sugestao-${sugestaoAtiva}`
+                    : undefined
+                }
+                onFocus={() => {
+                  setSugestoesAbertas(true)
+                  setSugestaoAtiva(0)
+                }}
+                onChange={(ev) => {
+                  setQuery(ev.target.value)
+                  setSugestoesAbertas(true)
+                  setSugestaoAtiva(0)
+                }}
+                onKeyDown={(ev) => {
+                  if (!sugestoesAbertas || sugestoes.length === 0) {
+                    if (ev.key === 'Escape') setSugestoesAbertas(false)
+                    return
+                  }
+                  if (ev.key === 'ArrowDown') {
+                    ev.preventDefault()
+                    setSugestaoAtiva((i) => (i + 1) % sugestoes.length)
+                  } else if (ev.key === 'ArrowUp') {
+                    ev.preventDefault()
+                    setSugestaoAtiva((i) => (i - 1 + sugestoes.length) % sugestoes.length)
+                  } else if (ev.key === 'Enter') {
+                    ev.preventDefault()
+                    aplicarSugestao(sugestoes[sugestaoAtiva])
+                  } else if (ev.key === 'Escape') {
+                    setSugestoesAbertas(false)
+                  }
+                }}
+              />
+              {sugestoesAbertas && sugestoes.length > 0 ? (
+                <ul id="sugestoes-busca" className="mapa-log__sugestoes" role="listbox">
+                  {sugestoes.map((s, i) => (
+                    <li key={`${s.tipo}-${s.valor ?? s.texto}`} role="option" aria-selected={i === sugestaoAtiva}>
+                      <button
+                        type="button"
+                        id={`sugestao-${i}`}
+                        className={`mapa-log__sugestao${i === sugestaoAtiva ? ' is-on' : ''}`}
+                        onMouseEnter={() => setSugestaoAtiva(i)}
+                        onMouseDown={(ev) => ev.preventDefault()}
+                        onClick={() => aplicarSugestao(s)}
+                      >
+                        <span className="mapa-log__sugestao-texto">
+                          {destacarTrecho(s.texto, query)}
+                        </span>
+                        <span className="mapa-log__sugestao-tipo">
+                          {labelTipoSugestao(s.tipo)}
+                          {s.detalhe ? ` · ${s.detalhe}` : ''}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+            <p className="mapa-log__hint">
+              Clique no campo para ver as sugestões, ou digite para filtrar a lista.
+            </p>
+          </div>
+
+          {chipsAtivos.length > 0 ? (
+            <div className="mapa-log__ativos">
+              {chipsAtivos.map((c) => (
+                <button key={c.key} type="button" className="mapa-log__chip is-on" onClick={c.limpar}>
+                  {c.label} ×
+                </button>
+              ))}
+              <button type="button" className="mapa-log__limpar" onClick={limparFiltros}>
+                Limpar tudo
+              </button>
+            </div>
+          ) : null}
+
+          <div className="mapa-log__filtros" ref={filtrosWrapRef}>
+            <FiltroCampo
+              id="rapidas"
+              titulo="Sugestões rápidas"
+              placeholder="Digite ou clique para ver sugestões"
+              aberto={filtroAberto === 'rapidas'}
+              onFoco={() => setFiltroAberto('rapidas')}
+              permitirLivre
+              opcoes={frasesSugestaoRapida().map((s) => ({
+                id: s.texto,
+                label: s.texto,
+                detalhe: s.detalhe,
+                ativo: funcoes.includes(s.texto),
+              }))}
+              onEscolher={(id) => setFuncoes((a) => toggleItem(a, id))}
+            />
+            <FiltroCampo
+              id="categorias"
+              titulo="Categorias"
+              placeholder="Digite a categoria"
+              aberto={filtroAberto === 'categorias'}
+              onFoco={() => setFiltroAberto('categorias')}
+              opcoes={[
+                {
+                  id: '',
+                  label: 'Todas',
+                  detalhe: `${aplicarFiltros(empresas, { ...filtros, categoria: null }).length} empresas`,
+                  ativo: categoria == null,
+                },
+                ...CATEGORIAS.map((c) => ({
+                  id: c.id,
+                  label: `${c.emoji} ${c.label}`,
+                  detalhe: `${contagem[c.id] ?? 0} empresas`,
+                  ativo: categoria === c.id,
+                })),
+              ]}
+              onEscolher={(id) => setCat(id ? (id as CategoriaId) : null)}
+            />
+            <FiltroCampo
+              id="funcao"
+              titulo="Função"
+              placeholder="Digite a função, ex.: empilhadeira"
+              aberto={filtroAberto === 'funcao'}
+              onFoco={() => setFiltroAberto('funcao')}
+              permitirLivre
+              opcoes={funcoesOpcoes.map((fn) => ({
+                id: fn,
+                label: fn,
+                ativo: funcoes.includes(fn),
+              }))}
+              onEscolher={(id) => setFuncoes((a) => toggleItem(a, id))}
+            />
+            <FiltroCampo
+              id="estado"
+              titulo="Estado"
+              placeholder="Digite a UF, ex.: SP"
+              aberto={filtroAberto === 'estado'}
+              onFoco={() => setFiltroAberto('estado')}
+              opcoes={ufsOpcoes.map((u) => ({
+                id: u.uf,
+                label: u.uf,
+                detalhe: `${u.qtd} empresas`,
+                ativo: ufs.includes(u.uf),
+              }))}
+              onEscolher={(id) => setUfs((a) => toggleItem(a, id.toUpperCase()))}
+            />
+            <FiltroCampo
+              id="regiao"
+              titulo="Região"
+              placeholder="Digite a região, ex.: Sudeste"
+              aberto={filtroAberto === 'regiao'}
+              onFoco={() => setFiltroAberto('regiao')}
+              opcoes={REGIOES.map((r) => ({
+                id: r.id,
+                label: r.label,
+                detalhe: r.ufs.join(', '),
+                ativo: regioes.includes(r.id),
+              }))}
+              onEscolher={(id) => setRegioes((a) => toggleItem(a, id))}
+            />
+            <FiltroCampo
+              id="cidade"
+              titulo="Cidade"
+              placeholder="Digite a cidade"
+              aberto={filtroAberto === 'cidade'}
+              onFoco={() => setFiltroAberto('cidade')}
+              permitirLivre
+              opcoes={cidadesOpcoes.map((c) => ({
+                id: c.cidade,
+                label: c.cidade,
+                detalhe: `${c.uf} · ${c.qtd}`,
+                ativo: cidades.includes(c.cidade),
+              }))}
+              onEscolher={(id) => setCidades((a) => toggleItem(a, id))}
+            />
+            <FiltroCampo
+              id="nivel"
+              titulo="Nível de integração"
+              placeholder="Digite o nível"
+              aberto={filtroAberto === 'nivel'}
+              onFoco={() => setFiltroAberto('nivel')}
+              opcoes={NIVEIS_INTEGRACAO.map((n) => ({
+                id: n.id,
+                label: n.label,
+                detalhe: n.resumo,
+                ativo: niveis.includes(n.id),
+              }))}
+              onEscolher={(id) => setNiveis((a) => toggleItem(a, id as NivelIntegracaoId))}
+            />
+            <FiltroCampo
+              id="origem"
+              titulo="Origem do cadastro"
+              placeholder="Digite a origem"
+              aberto={filtroAberto === 'origem'}
+              onFoco={() => setFiltroAberto('origem')}
+              opcoes={(Object.keys(ORIGEM_META) as OrigemCadastro[]).map((id) => ({
+                id,
+                label: ORIGEM_META[id].label,
+                ativo: origens.includes(id),
+              }))}
+              onEscolher={(id) => setOrigens((a) => toggleItem(a, id as OrigemCadastro))}
+            />
+          </div>
+
+          <p className="mapa-log__result">{filtradas.length} empresa(s) no mapa</p>
+          <ul className="mapa-log__empresas">
+            {filtradas.map((e) => {
+              const cat = categoriaPorId(e.categoria)
+              return (
+                <li key={e.id} style={{ display: 'flex', gap: 4, alignItems: 'stretch' }}>
+                  <button
+                    type="button"
+                    className={`mapa-log__emp${selecionada === e.id ? ' is-on' : ''}`}
+                    onClick={() => irPara(e)}
+                  >
+                    <span className="mapa-log__cat-ico" style={{ background: cat.corFundo }}>
+                      {cat.emoji}
+                    </span>
+                    <span>
+                      <span className="mapa-log__emp-nome">{e.nome_fantasia}</span>
+                      <span className="mapa-log__emp-meta">
+                        {cat.label} · {e.cidade}/{e.uf}
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="mapa-log__emp"
+                    style={{ width: 'auto', flexShrink: 0, fontSize: '0.72rem', fontWeight: 800 }}
+                    onClick={() => navigate(`/empresa/${e.slug}`)}
+                  >
+                    Ver página
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </aside>
+
+        <div className="mapa-log__map-wrap">
+          <div ref={mapEl} className="mapa-log__map" />
+          <div className="mapa-log__legenda-wrap" ref={legendaWrapRef}>
+            {legendaAberta ? (
+              <div className="mapa-log__legenda" role="dialog" aria-label="Ícones por categoria">
+                <strong>Ícones por categoria</strong>
+                {CATEGORIAS.filter((c) => (contagem[c.id] ?? 0) > 0).map((c) => (
+                  <div className="mapa-log__legenda-row" key={c.id}>
+                    <span>{c.emoji}</span>
+                    <span>{c.label}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <button
+              type="button"
+              className={`mapa-log__info${legendaAberta ? ' is-on' : ''}`}
+              aria-label={legendaAberta ? 'Fechar ícones por categoria' : 'Ver ícones por categoria'}
+              aria-expanded={legendaAberta}
+              onClick={() => setLegendaAberta((aberta) => !aberta)}
+            >
+              <Info size={18} strokeWidth={2.4} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FiltroCampo({
+  id,
+  titulo,
+  placeholder,
+  opcoes,
+  aberto,
+  onFoco,
+  onEscolher,
+  permitirLivre,
+}: {
+  id: string
+  titulo: string
+  placeholder: string
+  opcoes: { id: string; label: string; detalhe?: string; ativo?: boolean }[]
+  aberto: boolean
+  onFoco: () => void
+  onEscolher: (id: string) => void
+  permitirLivre?: boolean
+}) {
+  const [texto, setTexto] = useState('')
+  const [ativa, setAtiva] = useState(0)
+
+  const lista = useMemo(() => {
+    const q = semAcento(texto).trim()
+    if (!q) return opcoes
+    return opcoes.filter(
+      (o) =>
+        semAcento(o.label).includes(q) ||
+        semAcento(o.detalhe ?? '').includes(q) ||
+        semAcento(o.id).includes(q),
+    )
+  }, [opcoes, texto])
+
+  useEffect(() => {
+    setAtiva(0)
+  }, [texto, aberto])
+
+  function escolher(opcaoId: string) {
+    onEscolher(opcaoId)
+    setTexto('')
+  }
+
+  function confirmarLivre() {
+    const digitado = texto.trim()
+    if (!digitado) return
+    const exata = lista.find((o) => semAcento(o.label) === semAcento(digitado) || semAcento(o.id) === semAcento(digitado))
+    if (exata) escolher(exata.id)
+    else if (lista.length === 1) escolher(lista[0].id)
+    else if (permitirLivre) escolher(digitado)
+  }
+
+  return (
+    <div className="mapa-log__filtro">
+      <label className="mapa-log__filtro-label" htmlFor={`filtro-${id}`}>
+        {titulo}
+      </label>
+      <input
+        id={`filtro-${id}`}
+        className="mapa-log__input"
+        placeholder={placeholder}
+        value={texto}
+        autoComplete="off"
+        spellCheck={false}
+        role="combobox"
+        aria-expanded={aberto}
+        aria-controls={`filtro-lista-${id}`}
+        onFocus={onFoco}
+        onClick={onFoco}
+        onChange={(ev) => {
+          setTexto(ev.target.value)
+          onFoco()
+        }}
+        onKeyDown={(ev) => {
+          if (!aberto) {
+            if (ev.key === 'ArrowDown' || ev.key === 'Enter') onFoco()
+            return
+          }
+          if (ev.key === 'ArrowDown') {
+            ev.preventDefault()
+            setAtiva((i) => (lista.length ? (i + 1) % lista.length : 0))
+          } else if (ev.key === 'ArrowUp') {
+            ev.preventDefault()
+            setAtiva((i) => (lista.length ? (i - 1 + lista.length) % lista.length : 0))
+          } else if (ev.key === 'Enter') {
+            ev.preventDefault()
+            if (lista[ativa]) escolher(lista[ativa].id)
+            else confirmarLivre()
+          } else if (ev.key === 'Escape') {
+            setTexto('')
+          }
+        }}
+      />
+      {aberto ? (
+        <ul id={`filtro-lista-${id}`} className="mapa-log__filtro-lista" role="listbox">
+          {lista.length === 0 ? (
+            <li className="mapa-log__filtro-vazia">
+              {permitirLivre && texto.trim()
+                ? `Enter para usar “${texto.trim()}”`
+                : 'Nenhuma sugestão. Continue digitando.'}
+            </li>
+          ) : (
+            lista.map((o, i) => (
+              <li key={`${o.id}-${o.label}`} role="option" aria-selected={i === ativa}>
+                <button
+                  type="button"
+                  className={`mapa-log__sugestao${i === ativa ? ' is-on' : ''}${o.ativo ? ' is-picked' : ''}`}
+                  onMouseEnter={() => setAtiva(i)}
+                  onMouseDown={(ev) => ev.preventDefault()}
+                  onClick={() => escolher(o.id)}
+                >
+                  <span className="mapa-log__sugestao-texto">{destacarTrecho(o.label, texto)}</span>
+                  <span className="mapa-log__sugestao-tipo">
+                    {o.ativo ? 'Selecionado' : o.detalhe || 'Sugestão'}
+                  </span>
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
