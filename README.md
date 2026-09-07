@@ -26,6 +26,6 @@ Abre em `http://localhost:5174`.
 1. Cole `supabase/schema.sql` no [SQL Editor](https://supabase.com/dashboard/project/zbjhaupxhriedfsgtlbj/sql/new) e rode.
 2. `npm run db:apply` envia as ~500 empresas e os acessos Diego/Elder.
 3. Repositório: `https://github.com/eldertenorio-max/Doca-Livre-Mapa-da-Log-stica.git`
-4. No Render, conecte esse repositório. O `render.yaml` já define build, start e as variáveis públicas do Supabase.
+4. No Render, abra o [Blueprint deste repositório](https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2Feldertenorio-max%2FDoca-Livre-Mapa-da-Log-stica) e aplique. O `render.yaml` já define build, start e as variáveis públicas do Supabase.
 
 Login super: **Diego / diego123** e **Elder / Elder123**.

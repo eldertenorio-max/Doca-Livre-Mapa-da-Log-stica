@@ -1,13 +1,23 @@
+# Blueprint Render — Doca Livre Mapa da Logística
+# Dashboard (logado no Render):
+# https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2Feldertenorio-max%2FDoca-Livre-Mapa-da-Log-stica
+
 services:
   - type: web
     name: doca-livre-mapa-logistica
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run build
+    region: oregon
+    branch: main
+    autoDeploy: true
+    # --include=dev: o Render usa NODE_ENV=production e pula vite/typescript sem isso
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_VERSION
         value: '22'
+      - key: NPM_CONFIG_PRODUCTION
+        value: 'false'
       - key: VITE_SUPABASE_URL
         value: https://zbjhaupxhriedfsgtlbj.supabase.co
       - key: VITE_SUPABASE_ANON_KEY
