@@ -31,6 +31,7 @@ import '../styles/mapa.css'
 import '../styles/mapa-publico.css'
 
 const MAPA_FROTA_URL = 'https://mapadafrota.com.br'
+const CALCULAR_ROTA_URL = 'https://ofertadecargas.docalivre.com.br/?_v=rota-publico-cache-v135#/rota'
 
 function escapeHtml(s: string) {
   return s
@@ -712,20 +713,29 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
 
         <div className="mapa-log__map-wrap">
           <div ref={mapEl} className="mapa-log__map" />
-          <a
-            className="mapa-log__atalho-wrap"
-            href={MAPA_FROTA_URL}
-            target="_blank"
-            rel="noreferrer"
-          >
+          <div className="mapa-log__atalho-wrap">
             <span className="mapa-log__atalho-logo">
               <img src={LOGO_DOCA_LIVRE_SRC} alt="Doca Livre" />
             </span>
-            <span className="mapa-log__atalho">
+            <a
+              className="mapa-log__atalho"
+              href={MAPA_FROTA_URL}
+              target="_blank"
+              rel="noreferrer"
+            >
               <span>Mapa da</span>
               <span>Frota</span>
-            </span>
-          </a>
+            </a>
+            <a
+              className="mapa-log__atalho"
+              href={CALCULAR_ROTA_URL}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span>Calcular</span>
+              <span>rota</span>
+            </a>
+          </div>
           <div className="mapa-log__legenda-wrap" ref={legendaWrapRef}>
             {legendaAberta ? (
               <div className="mapa-log__legenda" role="dialog" aria-label="Ícones por categoria">
