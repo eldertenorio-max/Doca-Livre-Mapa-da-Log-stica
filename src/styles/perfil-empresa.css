@@ -25,13 +25,27 @@
 }
 
 .tv-perfil--in-shell {
+  width: 100%;
+  max-width: none;
+  margin: 0;
   background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
 }
 
 .tv-perfil--in-shell .tv-perfil__top,
 .tv-perfil--in-shell .tv-perfil__body {
   padding-left: 4px;
   padding-right: 4px;
+}
+
+.tv-perfil--in-shell.tv-perfil--fullscreen .tv-perfil__top,
+.tv-perfil--in-shell.tv-perfil--fullscreen .tv-perfil__body {
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-top: 8px;
+  padding-bottom: 24px;
 }
 
 .tv-perfil__feed-intro {

@@ -1,14 +1,18 @@
 .feed-mural {
   display: grid;
   gap: 12px;
+  width: 100%;
 }
 
 .feed {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-width: 720px;
+  width: 100%;
+  max-width: none;
+  min-height: 100%;
   padding-bottom: 36px;
+  box-sizing: border-box;
 }
 
 .feed__hero {
@@ -36,7 +40,7 @@
 
 .feed__hero p {
   margin: 6px 0 0;
-  max-width: 62ch;
+  max-width: none;
   font-size: 0.86rem;
   color: #d4d4d8;
 }
@@ -167,6 +171,11 @@
   resize: vertical;
 }
 
+.feed__composer textarea {
+  min-height: 96px;
+  box-sizing: border-box;
+}
+
 .feed__url {
   display: flex;
   align-items: center;
@@ -268,7 +277,7 @@
 .feed__foto {
   display: block;
   width: 100%;
-  max-height: 360px;
+  max-height: min(560px, 55vh);
   object-fit: cover;
   border-radius: 12px;
   margin-top: 12px;
