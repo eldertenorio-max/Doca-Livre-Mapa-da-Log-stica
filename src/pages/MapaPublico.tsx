@@ -11,7 +11,6 @@ import {
   registrarBuscaPublica,
 } from '../lib/mapaPublicoBuscas'
 import { PLANOS_PUBLICOS } from '../lib/planosPublicos'
-import { rotaInicial } from '../lib/rotasApp'
 import { aplicarFiltros, sugerirBusca, type SugestaoBusca } from '../lib/search'
 import type { CategoriaId, Empresa } from '../types'
 import '../styles/mapa-publico.css'
@@ -238,20 +237,12 @@ export function MapaPublicoPage() {
           </span>
         </Link>
         <div className="mapa-pub__top-actions">
-          {logado ? (
-            <Link className="mapa-pub__btn mapa-pub__btn--ghost" to={rotaInicial(sessao)}>
-              Ir para o sistema
-            </Link>
-          ) : (
-            <>
-              <Link className="mapa-pub__btn mapa-pub__btn--ghost" to="/login">
-                Entrar
-              </Link>
-              <Link className="mapa-pub__btn mapa-pub__btn--solid" to="/cadastro">
-                Cadastrar
-              </Link>
-            </>
-          )}
+          <Link className="mapa-pub__btn mapa-pub__btn--ghost" to="/login">
+            Entrar
+          </Link>
+          <Link className="mapa-pub__btn mapa-pub__btn--solid" to="/cadastro">
+            Cadastrar
+          </Link>
         </div>
       </header>
 
