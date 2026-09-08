@@ -456,12 +456,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
           </div>
         </header>
       ) : null}
-      <div className={publico ? 'mapa-log__publico-body' : 'mapa-log__body'}>
-      {publico ? (
-        <p className="mapa-log__sub mapa-log__sub--publico">
-          Clique no campo, digite e escolha a sugestão. O mapa mostra só as empresas selecionadas.
-        </p>
-      ) : (
+      <div className="mapa-log__body">
         <header className="mapa-log__head">
           <div>
             <h1 className="mapa-log__title">Mapa da Logística</h1>
@@ -470,7 +465,6 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
             </p>
           </div>
         </header>
-      )}
 
       <div className="mapa-log__layout">
         <aside className="mapa-log__lista">
@@ -687,8 +681,6 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
               }))}
               onEscolher={(id) => setCidades((a) => toggleItem(a, id))}
             />
-            {!publico ? (
-              <>
             <FiltroCampo
               id="nivel"
               titulo="Nível de integração"
@@ -716,8 +708,6 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
               }))}
               onEscolher={(id) => setOrigens((a) => toggleItem(a, id as OrigemCadastro))}
             />
-              </>
-            ) : null}
             <button type="button" className="mapa-log__btn-limpar" onClick={limparSoFiltros}>
               Limpar filtros
             </button>

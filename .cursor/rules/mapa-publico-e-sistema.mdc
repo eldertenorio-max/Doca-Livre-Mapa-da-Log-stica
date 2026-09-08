@@ -1,0 +1,22 @@
+---
+description: O mapa do link público e o da aba do sistema devem permanecer iguais.
+alwaysApply: true
+---
+
+# Mapa público e mapa do sistema
+
+Há **dois endereços** do mesmo mapa:
+
+- Link à parte (visitante): `#/mapa` — `<MapaPage publico />`
+- Aba Mapa do sistema (logado): `#/app/mapa` — `<MapaPage />`
+
+Os dois **devem ficar iguais**: mesma busca, mesma lista, mesmos pins, mesmas filiais, mesmos filtros, mesmos atalhos (Mapa da Frota, Calcular rota) e o mesmo catálogo.
+
+Ao alterar o mapa, mude o componente compartilhado `src/pages/Mapa.tsx` e os dados/estilos que ele usa. Não crie uma cópia só para o público ou só para o sistema.
+
+Únicas diferenças permitidas:
+
+- Barra Doca Livre / Entrar / Cadastrar no link público (o sistema já tem o menu).
+- Visitante sem login: cota de buscas, paywall e pin sem WhatsApp/CNPJ.
+
+Se uma mudança valer para um, vale para o outro.

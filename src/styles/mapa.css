@@ -58,7 +58,6 @@
   color: #64748b;
 }
 
-.mapa-log__publico-body,
 .mapa-log__body {
   flex: 1;
   min-height: 0;
@@ -67,13 +66,17 @@
   gap: 12px;
 }
 
-.mapa-log__publico-body {
+.mapa-log--publico .mapa-log__body {
   padding: 12px 14px 14px;
 }
 
-.mapa-log__sub--publico {
+.mapa-log--publico .mapa-log__head {
   margin: 0;
   flex-shrink: 0;
+}
+
+.mapa-log--publico .mapa-log__sub {
+  margin: 0;
 }
 
 .mapa-log__head-acoes {
