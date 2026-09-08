@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Info } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useAuth } from '../lib/AuthContext'
 import { CATEGORIAS, NIVEIS_INTEGRACAO, categoriaPorId } from '../lib/categorias'
 import { ORIGEM_META, REGIOES, catValida } from '../lib/painelStats'
+import {
+  estadoBuscasPublicas,
+  MAPA_PUBLICO_LIMITE_BUSCAS,
+  registrarBuscaPublica,
+} from '../lib/mapaPublicoBuscas'
+import { PLANOS_PUBLICOS } from '../lib/planosPublicos'
 import {
   aplicarFiltros,
   cidadesDoCadastro,
@@ -20,10 +26,33 @@ import {
 } from '../lib/search'
 import type { CategoriaId, Empresa, NivelIntegracaoId, OrigemCadastro } from '../types'
 import '../styles/mapa.css'
+import '../styles/mapa-publico.css'
+
+const MAPA_OFERTA_URL = 'https://ofertadecargas.docalivre.com.br/?_v=mapa-publico-v106#/mapa'
+
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
 
 function pinHtml(e: Empresa) {
   const cat = categoriaPorId(e.categoria)
-  return `<div class="pin-empresa__inner" style="background:${cat.cor}" title="${e.nome_fantasia}">${cat.emoji}</div>`
+  return `<div class="pin-empresa__inner" style="background:${cat.cor}" title="${escapeHtml(e.nome_fantasia)}">${cat.emoji}</div>`
+}
+
+function popupPublicoHtml(e: Empresa) {
+  const cat = categoriaPorId(e.categoria)
+  return `
+    <div class="mapa-pub-popup">
+      <p class="mapa-pub-popup__tipo">${escapeHtml(e.nome_fantasia)}</p>
+      <p class="mapa-pub-popup__local">${escapeHtml(cat.label)} · ${escapeHtml(e.cidade)} / ${escapeHtml(e.uf)}</p>
+      <p class="mapa-pub-popup__lock">Contato, WhatsApp e CNPJ só para assinante.</p>
+      <button type="button" class="mapa-pub-popup__cta js-mapa-pub-assinar">Assinar para ver contato</button>
+    </div>
+  `
 }
 
 function destacarTrecho(texto: string, query: string) {
@@ -52,8 +81,8 @@ function destacarTrecho(texto: string, query: string) {
   )
 }
 
-export function MapaPage() {
-  const { empresas } = useAuth()
+export function MapaPage({ publico = false }: { publico?: boolean }) {
+  const { empresas, sessao } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const mapEl = useRef<HTMLDivElement>(null)
@@ -78,6 +107,12 @@ export function MapaPage() {
   const buscaWrapRef = useRef<HTMLDivElement>(null)
   const filtrosWrapRef = useRef<HTMLDivElement>(null)
   const legendaWrapRef = useRef<HTMLDivElement>(null)
+  const basePath = publico ? '/mapa' : '/app/mapa'
+  const visitante = publico && !sessao
+  const [restam, setRestam] = useState(() =>
+    visitante ? estadoBuscasPublicas().restam : MAPA_PUBLICO_LIMITE_BUSCAS,
+  )
+  const [showPaywall, setShowPaywall] = useState(() => visitante && estadoBuscasPublicas().esgotado)
 
   useEffect(() => {
     if (catValida(catParam)) setCategoria(catParam)
@@ -112,7 +147,7 @@ export function MapaPage() {
         label: categoriaPorId(categoria).label,
         limpar: () => {
           setCategoria(null)
-          navigate('/app/mapa')
+          navigate(basePath)
         },
       })
     }
@@ -139,7 +174,7 @@ export function MapaPage() {
       chips.push({ key: `cid-${c}`, label: c, limpar: () => setCidades((a) => toggleItem(a, c)) })
     }
     return chips
-  }, [query, categoria, ufs, regioes, niveis, origens, funcoes, cidades, navigate])
+  }, [query, categoria, ufs, regioes, niveis, origens, funcoes, cidades, navigate, basePath])
 
   useEffect(() => {
     if (!mapEl.current || mapRef.current) return
@@ -178,14 +213,22 @@ export function MapaPage() {
       })
       const marker = L.marker([e.lat, e.lng], { icon })
       const cat = categoriaPorId(e.categoria)
-      marker.bindTooltip(
-        `<strong>${e.nome_fantasia}</strong><br/>${cat.label}<br/>${e.cidade}/${e.uf}`,
-        { direction: 'top', offset: [0, -28] },
-      )
-      marker.on('click', () => {
-        setSelecionada(e.id)
-        navigate(`/empresa/${e.slug}`)
-      })
+      if (visitante) {
+        marker.bindPopup(popupPublicoHtml(e), {
+          className: 'mapa-pub-leaflet',
+          maxWidth: 280,
+          minWidth: 220,
+        })
+      } else {
+        marker.bindTooltip(
+          `<strong>${escapeHtml(e.nome_fantasia)}</strong><br/>${cat.label}<br/>${e.cidade}/${e.uf}`,
+          { direction: 'top', offset: [0, -28] },
+        )
+        marker.on('click', () => {
+          setSelecionada(e.id)
+          navigate(`/empresa/${e.slug}?from=mapa`)
+        })
+      }
       marker.addTo(layer)
     }
 
@@ -195,21 +238,47 @@ export function MapaPage() {
       const bounds = L.latLngBounds(filtradas.map((e) => [e.lat, e.lng] as [number, number]))
       map.fitBounds(bounds.pad(0.18), { maxZoom: 10 })
     }
-  }, [filtradas, navigate])
+  }, [filtradas, navigate, visitante])
 
   function irPara(e: Empresa) {
     setSelecionada(e.id)
     mapRef.current?.setView([e.lat, e.lng], 12)
   }
 
+  function consumirBusca() {
+    if (!visitante) return true
+    if (estadoBuscasPublicas().esgotado) {
+      setShowPaywall(true)
+      setRestam(0)
+      return false
+    }
+    const consumo = registrarBuscaPublica()
+    setRestam(consumo.restam)
+    if (!consumo.ok) {
+      setShowPaywall(true)
+      return false
+    }
+    if (consumo.restam === 0) setShowPaywall(true)
+    return true
+  }
+
+  function abrirEmpresa(e: Empresa) {
+    if (visitante) {
+      setShowPaywall(true)
+      return
+    }
+    navigate(`/empresa/${e.slug}?from=mapa`)
+  }
+
   function aplicarSugestao(s: SugestaoBusca) {
+    if (!consumirBusca()) return
     if (s.tipo !== 'empresa') setQuery('')
     if (s.tipo === 'funcao') setFuncoes((a) => toggleItem(a, s.texto))
     else if (s.tipo === 'categoria') {
       const id = (s.valor as CategoriaId) || CATEGORIAS.find((c) => semAcento(c.label) === semAcento(s.texto))?.id
       if (id) {
         setCategoria(id)
-        navigate(`/app/mapa?cat=${id}`)
+        navigate(`${basePath}?cat=${id}`)
       }
     } else if (s.tipo === 'uf') setUfs((a) => toggleItem(a, s.valor || s.texto))
     else if (s.tipo === 'regiao') setRegioes((a) => toggleItem(a, s.valor || s.texto))
@@ -234,17 +303,23 @@ export function MapaPage() {
     setOrigens([])
     setFuncoes([])
     setCidades([])
-    navigate('/app/mapa')
+    navigate(basePath)
   }
 
   function setCat(next: CategoriaId | null) {
     setCategoria(next)
-    navigate(next ? `/app/mapa?cat=${next}` : '/app/mapa')
+    navigate(next ? `${basePath}?cat=${next}` : basePath)
   }
 
   useEffect(() => {
     function fecharFora(ev: MouseEvent) {
       const alvo = ev.target as Node
+      const el = ev.target as HTMLElement | null
+      if (el?.closest?.('.js-mapa-pub-assinar')) {
+        ev.preventDefault()
+        setShowPaywall(true)
+        return
+      }
       if (!buscaWrapRef.current?.contains(alvo)) {
         setSugestoesAbertas(false)
       }
@@ -260,7 +335,7 @@ export function MapaPage() {
   }, [])
 
   return (
-    <div className="mapa-log animate-fade-up">
+    <div className={`mapa-log animate-fade-up${publico ? ' mapa-log--publico' : ''}`}>
       <header className="mapa-log__head">
         <div>
           <h1 className="mapa-log__title">Mapa da Logística</h1>
@@ -268,6 +343,16 @@ export function MapaPage() {
             Clique no campo, digite e escolha a sugestão. O mapa mostra só as empresas selecionadas.
           </p>
         </div>
+        {publico ? (
+          <div className="mapa-log__head-acoes">
+            <Link className="mapa-log__btn mapa-log__btn--ghost" to="/login">
+              Entrar
+            </Link>
+            <Link className="mapa-log__btn mapa-log__btn--solid" to="/cadastro">
+              Cadastrar
+            </Link>
+          </div>
+        ) : null}
       </header>
 
       <div className="mapa-log__layout">
@@ -348,7 +433,19 @@ export function MapaPage() {
             </div>
             <p className="mapa-log__hint">
               Clique no campo para ver as sugestões, ou digite para filtrar a lista.
+              {publico
+                ? visitante
+                  ? restam > 0
+                    ? ` ${restam} de ${MAPA_PUBLICO_LIMITE_BUSCAS} buscas grátis restantes.`
+                    : ' Buscas grátis esgotadas.'
+                  : ' Conta logada · buscas ilimitadas.'
+                : ''}
             </p>
+            {visitante && restam === 0 ? (
+              <button type="button" className="mapa-log__assinar" onClick={() => setShowPaywall(true)}>
+                Assinar para continuar
+              </button>
+            ) : null}
           </div>
 
           {chipsAtivos.length > 0 ? (
@@ -459,6 +556,8 @@ export function MapaPage() {
               }))}
               onEscolher={(id) => setCidades((a) => toggleItem(a, id))}
             />
+            {!publico ? (
+              <>
             <FiltroCampo
               id="nivel"
               titulo="Nível de integração"
@@ -486,6 +585,8 @@ export function MapaPage() {
               }))}
               onEscolher={(id) => setOrigens((a) => toggleItem(a, id as OrigemCadastro))}
             />
+              </>
+            ) : null}
           </div>
 
           <p className="mapa-log__result">{filtradas.length} empresa(s) no mapa</p>
@@ -513,7 +614,7 @@ export function MapaPage() {
                     type="button"
                     className="mapa-log__emp"
                     style={{ width: 'auto', flexShrink: 0, fontSize: '0.72rem', fontWeight: 800 }}
-                    onClick={() => navigate(`/empresa/${e.slug}`)}
+                    onClick={() => abrirEmpresa(e)}
                   >
                     Ver página
                   </button>
@@ -527,7 +628,7 @@ export function MapaPage() {
           <div ref={mapEl} className="mapa-log__map" />
           <a
             className="mapa-log__atalho"
-            href="https://ofertadecargas.docalivre.com.br/?_v=mapa-publico-v106#/mapa"
+            href={MAPA_OFERTA_URL}
             target="_blank"
             rel="noreferrer"
           >
@@ -557,6 +658,51 @@ export function MapaPage() {
           </div>
         </div>
       </div>
+
+      {showPaywall ? (
+        <div className="mapa-pub-modal" role="dialog" aria-modal="true" aria-labelledby="mapa-pub-pay-title">
+          <div className="mapa-pub-modal__card mapa-pub-modal__card--planos">
+            <h2 id="mapa-pub-pay-title">Escolha um plano</h2>
+            <p>
+              As {MAPA_PUBLICO_LIMITE_BUSCAS} buscas grátis acabaram. Assine para continuar no mapa e
+              ver contato das empresas.
+            </p>
+            <div className="mapa-pub-planos">
+              {PLANOS_PUBLICOS.map((plano) => (
+                <article
+                  key={plano.id}
+                  className={`mapa-pub-plano${plano.destaque ? ' is-destaque' : ''}`}
+                >
+                  {plano.destaque ? <span className="mapa-pub-plano__tag">Mais escolhido</span> : null}
+                  <h3>{plano.nome}</h3>
+                  <p className="mapa-pub-plano__para">{plano.para}</p>
+                  <p className="mapa-pub-plano__preco">
+                    <strong>{plano.preco}</strong>
+                    <small>{plano.periodo}</small>
+                  </p>
+                  <p className="mapa-pub-plano__extra">{plano.extra}</p>
+                  <ul>
+                    {plano.itens.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                  <Link className="mapa-pub__btn mapa-pub__btn--solid" to={`/cadastro?plano=${plano.id}`}>
+                    Assinar {plano.nome}
+                  </Link>
+                </article>
+              ))}
+            </div>
+            <div className="mapa-pub-modal__acoes">
+              <Link className="mapa-pub__btn mapa-pub__btn--ghost" to="/login">
+                Já tenho conta
+              </Link>
+              <button type="button" className="mapa-pub-modal__fechar" onClick={() => setShowPaywall(false)}>
+                Continuar só olhando o mapa
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

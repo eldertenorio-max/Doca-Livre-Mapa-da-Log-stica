@@ -9,7 +9,6 @@ import { PerfilPage } from './pages/Perfil'
 import { KanbanEmpresasPage } from './pages/KanbanEmpresas'
 import { LoginPage } from './pages/Login'
 import { MapaPage } from './pages/Mapa'
-import { MapaPublicoPage } from './pages/MapaPublico'
 import { PainelPage } from './pages/Painel'
 import { rotaInicial } from './lib/rotasApp'
 
@@ -39,7 +38,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/cadastro" element={<CadastroEmpresaPage />} />
-      <Route path="/mapa" element={<MapaPublicoPage />} />
+      <Route path="/mapa" element={<MapaPage publico />} />
       <Route path="/" element={<Inicio />} />
 
       <Route element={<RequireAuth />}>
