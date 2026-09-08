@@ -30,7 +30,7 @@ import type { CategoriaId, Empresa, NivelIntegracaoId, OrigemCadastro } from '..
 import '../styles/mapa.css'
 import '../styles/mapa-publico.css'
 
-const MAPA_OFERTA_URL = 'https://ofertadecargas.docalivre.com.br/?_v=mapa-publico-v106#/mapa'
+const MAPA_FROTA_URL = 'https://mapadafrota.com.br'
 
 function escapeHtml(s: string) {
   return s
@@ -654,11 +654,11 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
           <div ref={mapEl} className="mapa-log__map" />
           <a
             className="mapa-log__atalho"
-            href={MAPA_OFERTA_URL}
+            href={MAPA_FROTA_URL}
             target="_blank"
             rel="noreferrer"
           >
-            Abrir mapa da logística
+            Abrir mapa da frota
           </a>
           <div className="mapa-log__legenda-wrap" ref={legendaWrapRef}>
             {legendaAberta ? (
