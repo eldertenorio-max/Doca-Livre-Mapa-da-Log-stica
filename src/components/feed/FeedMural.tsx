@@ -1,9 +1,27 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heart, ImagePlus, MessageCircle, Send, Trash2 } from 'lucide-react'
+import {
+  Camera,
+  Heart,
+  ImagePlus,
+  MessageCircle,
+  Paperclip,
+  Send,
+  Trash2,
+  Video,
+  X,
+} from 'lucide-react'
 import type { Empresa } from '../../types'
 import { useAuth } from '../../lib/AuthContext'
 import { iniciaisEmpresa, logoSrcEmpresa } from '../../lib/empresaVisual'
+import {
+  classificarMidia,
+  enviarArquivosFeed,
+  formatarTamanhoArquivo,
+  MAX_ANEXOS_FEED,
+  midiasDoPost,
+  validarArquivoFeed,
+} from '../../lib/feedMidia'
 import {
   TIPOS_POST_FEED,
   alternarCurtida,
@@ -16,6 +34,7 @@ import {
   type PostFeed,
   type TipoPostFeed,
 } from '../../lib/feedStore'
+import { FeedGaleria } from './FeedGaleria'
 import '../../styles/feed.css'
 
 type Props = {
@@ -23,6 +42,13 @@ type Props = {
   mostrarComposer: boolean
   composerEmpresa?: Empresa
   vazio?: string
+}
+
+type AnexoLocal = {
+  id: string
+  file: File
+  preview: string
+  tipo: ReturnType<typeof classificarMidia>
 }
 
 export function postsDaEmpresa(posts: PostFeed[], empresa: Pick<Empresa, 'id' | 'slug'>) {
@@ -46,12 +72,19 @@ export function FeedMural({ empresaFiltro, mostrarComposer, composerEmpresa, vaz
   const [posts, setPosts] = useState<PostFeed[]>([])
   const [filtro, setFiltro] = useState<TipoPostFeed | 'todos'>('todos')
   const [texto, setTexto] = useState('')
-  const [imagem, setImagem] = useState('')
   const [tipo, setTipo] = useState<TipoPostFeed>('servico')
+  const [anexos, setAnexos] = useState<AnexoLocal[]>([])
+  const anexosRef = useRef<AnexoLocal[]>([])
+  anexosRef.current = anexos
+  const [arrastando, setArrastando] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [comentarioAberto, setComentarioAberto] = useState<string | null>(null)
   const [rascunhoComentario, setRascunhoComentario] = useState('')
+  const fotoRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLInputElement>(null)
+  const arquivoRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
 
   async function recarregar() {
     setPosts(await listarPostsFeed())
@@ -61,10 +94,60 @@ export function FeedMural({ empresaFiltro, mostrarComposer, composerEmpresa, vaz
     void recarregar()
   }, [sessao?.usuario, empresaFiltro?.slug])
 
+  useEffect(() => {
+    return () => {
+      anexosRef.current.forEach((a) => URL.revokeObjectURL(a.preview))
+    }
+  }, [])
+
   const visiveis = useMemo(() => {
     const base = empresaFiltro ? postsDaEmpresa(posts, empresaFiltro) : posts
     return filtro === 'todos' ? base : base.filter((p) => p.tipo === filtro)
   }, [empresaFiltro, filtro, posts])
+
+  function acrescentarArquivos(lista: FileList | File[] | null) {
+    if (!lista) return
+    const novos = Array.from(lista)
+    setErro(null)
+    setAnexos((atual) => {
+      const resto = MAX_ANEXOS_FEED - atual.length
+      if (resto <= 0) {
+        setErro(`Envie no máximo ${MAX_ANEXOS_FEED} arquivos por publicação.`)
+        return atual
+      }
+      const aceitos: AnexoLocal[] = []
+      for (const file of novos.slice(0, resto)) {
+        try {
+          const tipoArquivo = validarArquivoFeed(file)
+          const jaTem = atual.some((a) => a.file.name === file.name && a.file.size === file.size)
+          if (jaTem) continue
+          aceitos.push({
+            id: crypto.randomUUID(),
+            file,
+            preview: URL.createObjectURL(file),
+            tipo: tipoArquivo,
+          })
+        } catch (err) {
+          setErro(err instanceof Error ? err.message : 'Arquivo não aceito.')
+        }
+      }
+      return [...atual, ...aceitos]
+    })
+  }
+
+  function removerAnexo(id: string) {
+    setAnexos((atual) => {
+      const alvo = atual.find((a) => a.id === id)
+      if (alvo) URL.revokeObjectURL(alvo.preview)
+      return atual.filter((a) => a.id !== id)
+    })
+  }
+
+  function onSoltar(e: DragEvent) {
+    e.preventDefault()
+    setArrastando(false)
+    acrescentarArquivos(e.dataTransfer.files)
+  }
 
   async function onPublicar(e: FormEvent) {
     e.preventDefault()
@@ -72,16 +155,18 @@ export function FeedMural({ empresaFiltro, mostrarComposer, composerEmpresa, vaz
     setEnviando(true)
     setErro(null)
     try {
+      const midias = await enviarArquivosFeed(anexos.map((a) => a.file))
       await publicarPostFeed({
         sessaoUsuario: sessao.usuario,
         sessaoNome: sessao.nome,
         empresa: composerEmpresa,
         tipo,
         texto,
-        imagem_url: imagem,
+        midias,
       })
+      anexos.forEach((a) => URL.revokeObjectURL(a.preview))
       setTexto('')
-      setImagem('')
+      setAnexos([])
       await recarregar()
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Não foi possível publicar.')
@@ -110,7 +195,20 @@ export function FeedMural({ empresaFiltro, mostrarComposer, composerEmpresa, vaz
   return (
     <div className="feed-mural">
       {mostrarComposer && sessao ? (
-        <form className="feed__composer" onSubmit={onPublicar}>
+        <form
+          className={`feed__composer ${arrastando ? 'is-drop' : ''}`}
+          onSubmit={onPublicar}
+          onDragOver={(e) => {
+            e.preventDefault()
+            setArrastando(true)
+          }}
+          onDragLeave={() => setArrastando(false)}
+          onDrop={onSoltar}
+          onPaste={(e) => {
+            const arquivos = Array.from(e.clipboardData.files || [])
+            if (arquivos.length) acrescentarArquivos(arquivos)
+          }}
+        >
           <div className="feed__composer-top">
             <span className="feed__avatar" aria-hidden>
               {iniciaisEmpresa(composerEmpresa?.nome_fantasia || sessao.nome)}
@@ -138,22 +236,96 @@ export function FeedMural({ empresaFiltro, mostrarComposer, composerEmpresa, vaz
             placeholder="Divulgue um serviço, capacidade de frota, rota ou parceria…"
             rows={4}
             maxLength={1200}
-            required
           />
-          <label className="feed__url">
-            <ImagePlus size={16} />
-            <input
-              value={imagem}
-              onChange={(e) => setImagem(e.target.value)}
-              placeholder="URL de imagem (opcional)"
-              type="url"
-            />
-          </label>
+          {anexos.length > 0 ? (
+            <div className="feed__anexos">
+              {anexos.map((a) => (
+                <div key={a.id} className={`feed__anexo feed__anexo--${a.tipo}`}>
+                  {a.tipo === 'imagem' ? (
+                    <img src={a.preview} alt="" />
+                  ) : a.tipo === 'video' ? (
+                    <video src={a.preview} muted />
+                  ) : (
+                    <div className="feed__anexo-arquivo">
+                      <Paperclip size={16} />
+                      <span>
+                        {a.file.name}
+                        <em>{formatarTamanhoArquivo(a.file.size)}</em>
+                      </span>
+                    </div>
+                  )}
+                  <button type="button" className="feed__anexo-x" onClick={() => removerAnexo(a.id)} aria-label="Remover arquivo">
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="feed__drop-hint">Arraste fotos, vídeos ou arquivos para cá, ou use os botões abaixo.</p>
+          )}
+          <input
+            ref={fotoRef}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(e) => {
+              acrescentarArquivos(e.target.files)
+              e.target.value = ''
+            }}
+          />
+          <input
+            ref={videoRef}
+            type="file"
+            accept="video/*"
+            multiple
+            hidden
+            onChange={(e) => {
+              acrescentarArquivos(e.target.files)
+              e.target.value = ''
+            }}
+          />
+          <input
+            ref={arquivoRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt,audio/*,application/pdf"
+            multiple
+            hidden
+            onChange={(e) => {
+              acrescentarArquivos(e.target.files)
+              e.target.value = ''
+            }}
+          />
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*,video/*"
+            capture="environment"
+            hidden
+            onChange={(e) => {
+              acrescentarArquivos(e.target.files)
+              e.target.value = ''
+            }}
+          />
+          <div className="feed__toolbar">
+            <button type="button" onClick={() => fotoRef.current?.click()}>
+              <ImagePlus size={16} /> Foto
+            </button>
+            <button type="button" onClick={() => videoRef.current?.click()}>
+              <Video size={16} /> Vídeo
+            </button>
+            <button type="button" onClick={() => arquivoRef.current?.click()}>
+              <Paperclip size={16} /> Arquivo
+            </button>
+            <button type="button" onClick={() => cameraRef.current?.click()}>
+              <Camera size={16} /> Câmera
+            </button>
+            <button type="submit" className="feed__publicar" disabled={enviando}>
+              <Send size={16} />
+              {enviando ? 'Publicando…' : 'Publicar'}
+            </button>
+          </div>
           {erro ? <p className="feed__erro">{erro}</p> : null}
-          <button type="submit" className="feed__publicar" disabled={enviando}>
-            <Send size={16} />
-            {enviando ? 'Publicando…' : 'Publicar'}
-          </button>
         </form>
       ) : null}
 
@@ -188,6 +360,7 @@ export function FeedMural({ empresaFiltro, mostrarComposer, composerEmpresa, vaz
             const logo = emp ? logoSrcEmpresa(emp) : null
             const curtiu = sessao ? post.curtidas.includes(sessao.usuario) : false
             const podeApagar = sessao?.isSuper || sessao?.usuario === post.autor_usuario
+            const midias = midiasDoPost(post)
             return (
               <article key={post.id} className="feed__card">
                 <header className="feed__card-head">
@@ -211,8 +384,8 @@ export function FeedMural({ empresaFiltro, mostrarComposer, composerEmpresa, vaz
                   </button>
                   <span className="feed__tipo">{labelTipoPost(post.tipo)}</span>
                 </header>
-                <p className="feed__texto">{post.texto}</p>
-                {post.imagem_url ? <img src={post.imagem_url} alt="" className="feed__foto" /> : null}
+                {post.texto ? <p className="feed__texto">{post.texto}</p> : null}
+                <FeedGaleria midias={midias} />
                 <footer className="feed__acoes">
                   <button type="button" className={curtiu ? 'is-on' : ''} onClick={() => void onCurtir(post)}>
                     <Heart size={16} fill={curtiu ? 'currentColor' : 'none'} />

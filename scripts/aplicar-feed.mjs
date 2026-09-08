@@ -17,7 +17,10 @@ function carregarEnv() {
 
 carregarEnv()
 
-const sql = readFileSync(resolve(root, 'supabase/feed.sql'), 'utf8')
+const sql = [
+  readFileSync(resolve(root, 'supabase/feed.sql'), 'utf8'),
+  readFileSync(resolve(root, 'supabase/feed-midias.sql'), 'utf8'),
+].join('\n')
 
 async function main() {
   const password = process.env.SUPABASE_DB_PASSWORD || ''

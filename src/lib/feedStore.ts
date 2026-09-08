@@ -1,6 +1,7 @@
 import type { Empresa } from '../types'
 import { supabase } from './supabase'
 import { tabelaAindaNaoExiste } from './supabaseSync'
+import { midiasDoPost, type MidiaFeed } from './feedMidia'
 
 export type TipoPostFeed = 'servico' | 'capacidade' | 'parceria' | 'aviso'
 
@@ -30,6 +31,7 @@ export type PostFeed = {
   tipo: TipoPostFeed
   texto: string
   imagem_url?: string | null
+  midias?: MidiaFeed[]
   created_at: string
   curtidas: string[]
   comentarios: ComentarioFeed[]
@@ -109,6 +111,7 @@ function montarFeed(
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .map((p) => ({
       ...p,
+      midias: midiasDoPost(p),
       curtidas: curtidas.filter((c) => c.post_id === p.id).map((c) => c.usuario),
       comentarios: comentarios
         .filter((c) => c.post_id === p.id)
@@ -143,9 +146,14 @@ export async function publicarPostFeed(params: {
   tipo: TipoPostFeed
   texto: string
   imagem_url?: string
+  midias?: MidiaFeed[]
 }) {
   const texto = params.texto.trim()
-  if (texto.length < 3) throw new Error('Escreva o que deseja divulgar.')
+  const midias = (params.midias ?? []).filter((m) => m?.url)
+  if (texto.length < 3 && midias.length === 0) {
+    throw new Error('Escreva algo ou anexe uma foto, vídeo ou arquivo.')
+  }
+  const primeiraImagem = midias.find((m) => m.tipo === 'imagem')?.url || params.imagem_url?.trim() || null
   const post: LinhaPost = {
     id: novoId(),
     empresa_id: params.empresa?.id ?? null,
@@ -155,13 +163,21 @@ export async function publicarPostFeed(params: {
     autor_nome: params.sessaoNome,
     tipo: params.tipo,
     texto,
-    imagem_url: params.imagem_url?.trim() || null,
+    imagem_url: primeiraImagem,
+    midias,
     created_at: agoraIso(),
   }
 
   if (supabase) {
     const { error } = await supabase.from('mapa_feed_posts').insert(post)
-    if (error && !tabelaAindaNaoExiste(error)) throw new Error(error.message)
+    if (error && /midias/i.test(error.message)) {
+      const semMidias = { ...post }
+      delete (semMidias as { midias?: unknown }).midias
+      const { error: e2 } = await supabase.from('mapa_feed_posts').insert(semMidias)
+      if (e2 && !tabelaAindaNaoExiste(e2)) throw new Error(e2.message)
+    } else if (error && !tabelaAindaNaoExiste(error)) {
+      throw new Error(error.message)
+    }
   }
   saveJson(POSTS_KEY, [post, ...localPosts().filter((p) => p.id !== post.id)])
   return post
