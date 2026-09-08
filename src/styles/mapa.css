@@ -572,7 +572,7 @@
   align-items: center;
   justify-content: center;
   background: #fff;
-  border-radius: 999px;
+  border-radius: 0;
   padding: 7px 16px;
   box-sizing: border-box;
   box-shadow: 0 8px 18px rgb(0 0 0 / 0.18);
