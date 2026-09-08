@@ -26,9 +26,18 @@ type Props = {
 }
 
 export function postsDaEmpresa(posts: PostFeed[], empresa: Pick<Empresa, 'id' | 'slug'>) {
-  return posts.filter(
-    (p) => p.empresa_slug === empresa.slug || (empresa.id && p.empresa_id === empresa.id),
-  )
+  return posts.filter((p) => {
+    if (p.empresa_slug === empresa.slug) return true
+    if (empresa.id && p.empresa_id === empresa.id) return true
+    if (
+      empresa.slug === 'doca-livre' &&
+      !p.empresa_slug &&
+      (p.empresa_nome === 'Doca Livre' || !p.empresa_id)
+    ) {
+      return true
+    }
+    return false
+  })
 }
 
 export function FeedMural({ empresaFiltro, mostrarComposer, composerEmpresa, vazio }: Props) {

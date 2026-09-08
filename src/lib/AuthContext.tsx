@@ -9,6 +9,7 @@ import {
   type Sessao,
 } from './auth'
 import { listarEmpresas } from './cadastroStore'
+import { EMPRESA_DOCA_LIVRE } from './empresaDocaLivre'
 import { sincronizarCatalogo } from './supabaseSync'
 
 type AuthCtx = {
@@ -55,7 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       empresas,
       minhaEmpresa:
         empresas.find((e) => e.id === sessao?.empresaId || e.slug === sessao?.empresaSlug) ??
-        empresaDaSessao(sessao),
+        empresaDaSessao(sessao) ??
+        (sessao?.isSuper ? EMPRESA_DOCA_LIVRE : undefined),
       recarregarEmpresas,
       async login(usuario, senha) {
         const r = await autenticar(usuario, senha)

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Bell, Newspaper } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import { FeedMural } from '../components/feed/FeedMural'
+import { RedeAbas } from '../components/feed/RedeAbas'
 import { useAuth } from '../lib/AuthContext'
 import {
   listarNotificacoes,
@@ -12,7 +13,8 @@ import '../styles/feed.css'
 
 export function FeedPage() {
   const { sessao, minhaEmpresa } = useAuth()
-  const [aba, setAba] = useState<'feed' | 'notificacoes'>('feed')
+  const location = useLocation()
+  const abaNotificacoes = location.pathname.endsWith('/notificacoes')
   const [notifs, setNotifs] = useState<NotificacaoFeed[]>([])
 
   async function recarregarNotifs() {
@@ -25,9 +27,9 @@ export function FeedPage() {
   }, [sessao?.usuario])
 
   useEffect(() => {
-    if (aba !== 'notificacoes' || !sessao) return
+    if (!abaNotificacoes || !sessao) return
     void marcarNotificacoesLidas(sessao.usuario).then(() => recarregarNotifs())
-  }, [aba, sessao?.usuario])
+  }, [abaNotificacoes, sessao?.usuario])
 
   const naoLidas = notifs.filter((n) => !n.lida).length
   const podePublicar = Boolean(sessao?.isSuper || minhaEmpresa)
@@ -37,35 +39,18 @@ export function FeedPage() {
       <header className="feed__hero">
         <div>
           <p className="feed__kicker">Doca Livre · Rede</p>
-          <h1>Feed notícias</h1>
+          <h1>{abaNotificacoes ? 'Notificações' : 'Feed notícias'}</h1>
           <p>
-            Publique serviços e capacidade da sua operação e acompanhe as divulgações das outras
-            empresas da rede.
+            {abaNotificacoes
+              ? 'Curtidas e comentários nas suas divulgações aparecem aqui.'
+              : 'Publique serviços e capacidade da sua operação e acompanhe as divulgações das outras empresas da rede.'}
           </p>
         </div>
       </header>
 
-      <div className="feed__tabs" role="tablist" aria-label="Feed ou notificações">
-        <button
-          type="button"
-          className={`feed__tab ${aba === 'feed' ? 'is-active' : ''}`}
-          onClick={() => setAba('feed')}
-        >
-          <Newspaper size={16} />
-          Feed notícias
-        </button>
-        <button
-          type="button"
-          className={`feed__tab ${aba === 'notificacoes' ? 'is-active' : ''}`}
-          onClick={() => setAba('notificacoes')}
-        >
-          <Bell size={16} />
-          Notificações
-          {naoLidas > 0 ? <span className="feed__badge">{naoLidas}</span> : null}
-        </button>
-      </div>
+      <RedeAbas naoLidas={naoLidas} />
 
-      {aba === 'notificacoes' ? (
+      {abaNotificacoes ? (
         <section className="feed__lista" aria-label="Notificações">
           {notifs.length === 0 ? (
             <p className="feed__vazio">

@@ -47,7 +47,7 @@
 
 .feed__tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 8px;
   padding: 4px;
   background: #fff;
@@ -67,6 +67,7 @@
   padding: 10px 12px;
   border-radius: 10px;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .feed__tab.is-active {

@@ -5,6 +5,7 @@ import { CadastroEmpresaPage } from './pages/CadastroEmpresa'
 import { EmpresaPage } from './pages/Empresa'
 import { FeedPage } from './pages/Feed'
 import { HierarquiaPage } from './pages/Hierarquia'
+import { PerfilPage } from './pages/Perfil'
 import { KanbanEmpresasPage } from './pages/KanbanEmpresas'
 import { LoginPage } from './pages/Login'
 import { MapaPage } from './pages/Mapa'
@@ -41,7 +42,9 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<Inicio />} />
           <Route path="/mapa" element={<MapaPage />} />
+          <Route path="/perfil" element={<PerfilPage />} />
           <Route path="/feed" element={<FeedPage />} />
+          <Route path="/feed/notificacoes" element={<FeedPage />} />
           <Route path="/empresa/:slug" element={<EmpresaPage />} />
           <Route element={<RequireSuper />}>
             <Route path="/painel" element={<PainelPage />} />

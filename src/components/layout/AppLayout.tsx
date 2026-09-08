@@ -194,10 +194,10 @@ export function AppLayout() {
                     className="app-topbar-avatar-menu__btn"
                     onClick={() => {
                       setMenuAberto(false)
-                      navigate(`/empresa/${minhaEmpresa.slug}`)
+                      navigate('/perfil')
                     }}
                   >
-                    Perfil
+                    Meu perfil
                   </button>
                 ) : null}
                 <button
@@ -248,16 +248,13 @@ export function AppLayout() {
                     { to: '/painel', label: 'Painel', icon: <IconChart />, end: true, badge: 0 },
                     { to: '/hierarquia', label: 'Hierarquia', icon: <IconHierarchy />, end: false, badge: 0 },
                     { to: '/kanban', label: 'Kanban de empresas', icon: <IconKanban />, end: false, badge: 0 },
-                    { to: '/mapa', label: 'Mapa', icon: <IconMap />, end: false, badge: 0 },
-                    { to: '/feed', label: 'Feed notícias', icon: <IconFeed />, end: false, badge: naoLidas },
                   ]
-                : [
-                    ...(minhaEmpresa
-                      ? [{ to: `/empresa/${minhaEmpresa.slug}`, label: 'Perfil', icon: <IconProfile />, end: false, badge: 0 }]
-                      : []),
-                    { to: '/feed', label: 'Feed notícias', icon: <IconFeed />, end: false, badge: naoLidas },
-                    { to: '/mapa', label: 'Mapa', icon: <IconMap />, end: false, badge: 0 },
-                  ]),
+                : []),
+              ...(minhaEmpresa
+                ? [{ to: '/perfil', label: 'Meu perfil', icon: <IconProfile />, end: true, badge: 0 }]
+                : []),
+              { to: '/feed', label: 'Feed notícias', icon: <IconFeed />, end: false, badge: naoLidas },
+              { to: '/mapa', label: 'Mapa', icon: <IconMap />, end: false, badge: 0 },
             ].map((item) => (
               <NavLink
                 key={item.to}

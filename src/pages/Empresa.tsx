@@ -1,12 +1,18 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { EmpresaPerfil } from '../components/empresa/EmpresaPerfil'
 import { useAuth } from '../lib/AuthContext'
+import { EMPRESA_DOCA_LIVRE, EMPRESA_DOCA_LIVRE_SLUG } from '../lib/empresaDocaLivre'
 
 export function EmpresaPage() {
   const { slug } = useParams()
   const [params] = useSearchParams()
   const { empresas, minhaEmpresa } = useAuth()
-  const empresa = slug ? empresas.find((e) => e.slug === slug) : undefined
+  const empresa =
+    slug === EMPRESA_DOCA_LIVRE_SLUG
+      ? EMPRESA_DOCA_LIVRE
+      : slug
+        ? empresas.find((e) => e.slug === slug)
+        : undefined
   const from = params.get('from')
   const voltarTo = from === 'kanban' ? '/kanban' : from === 'hierarquia' ? '/hierarquia' : from === 'feed' ? '/feed' : '/mapa'
   const voltarLabel =
