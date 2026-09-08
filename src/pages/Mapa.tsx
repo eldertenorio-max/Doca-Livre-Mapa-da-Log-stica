@@ -125,6 +125,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
   const [sugestaoAtiva, setSugestaoAtiva] = useState(0)
   const [legendaAberta, setLegendaAberta] = useState(false)
   const [filtroAberto, setFiltroAberto] = useState<string | null>(null)
+  const [filtrosReset, setFiltrosReset] = useState(0)
   const buscaWrapRef = useRef<HTMLDivElement>(null)
   const filtrosWrapRef = useRef<HTMLDivElement>(null)
   const legendaWrapRef = useRef<HTMLDivElement>(null)
@@ -365,8 +366,13 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     setSugestaoAtiva(0)
   }
 
-  function limparFiltros() {
+  function limparPesquisa() {
     setQuery('')
+    setSugestoesAbertas(false)
+    setSugestaoAtiva(0)
+  }
+
+  function limparSoFiltros() {
     setCategoria(null)
     setUfs([])
     setRegioes([])
@@ -374,7 +380,14 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     setOrigens([])
     setFuncoes([])
     setCidades([])
+    setFiltroAberto(null)
+    setFiltrosReset((n) => n + 1)
     navigate(basePath)
+  }
+
+  function limparFiltros() {
+    limparPesquisa()
+    limparSoFiltros()
   }
 
   function setCat(next: CategoriaId | null) {
@@ -451,7 +464,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
             <div className="mapa-log__busca-wrap" ref={buscaWrapRef}>
               <input
                 id="busca-mapa"
-                className="mapa-log__input"
+                className={`mapa-log__input${query ? ' mapa-log__input--com-limpar' : ''}`}
                 placeholder="Clique e escolha, ou digite: empilhadeira, SP, WMS…"
                 value={query}
                 autoComplete="off"
@@ -493,6 +506,17 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
                   }
                 }}
               />
+              {query.trim() ? (
+                <button
+                  type="button"
+                  className="mapa-log__busca-x"
+                  aria-label="Limpar campo de pesquisa"
+                  onMouseDown={(ev) => ev.preventDefault()}
+                  onClick={limparPesquisa}
+                >
+                  ×
+                </button>
+              ) : null}
               {sugestoesAbertas && sugestoes.length > 0 ? (
                 <ul id="sugestoes-busca" className="mapa-log__sugestoes" role="listbox">
                   {sugestoes.map((s, i) => (
@@ -533,6 +557,9 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
                 Assinar para continuar
               </button>
             ) : null}
+            <button type="button" className="mapa-log__btn-limpar" onClick={limparPesquisa}>
+              Limpar pesquisa
+            </button>
           </div>
 
           {chipsAtivos.length > 0 ? (
@@ -548,7 +575,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
             </div>
           ) : null}
 
-          <div className="mapa-log__filtros" ref={filtrosWrapRef}>
+          <div className="mapa-log__filtros" ref={filtrosWrapRef} key={filtrosReset}>
             <FiltroCampo
               id="rapidas"
               titulo="Sugestões rápidas"
@@ -674,6 +701,9 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
             />
               </>
             ) : null}
+            <button type="button" className="mapa-log__btn-limpar" onClick={limparSoFiltros}>
+              Limpar filtros
+            </button>
           </div>
 
           <p className="mapa-log__result">{filtradas.length} empresa(s) no mapa</p>
