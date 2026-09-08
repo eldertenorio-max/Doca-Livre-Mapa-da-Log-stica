@@ -42,7 +42,7 @@ export function PainelPage() {
             Leitura do cadastro atual: quem está no mapa, por categoria, estado e nível de integração.
           </p>
         </div>
-        <button type="button" className="painel__cta" onClick={() => navigate('/mapa')}>
+        <button type="button" className="painel__cta" onClick={() => navigate('/app/mapa')}>
           Abrir o mapa
         </button>
       </header>
@@ -61,7 +61,7 @@ export function PainelPage() {
           detalhe={`${pct(stats.transportadoras, stats.total)}% do mapa`}
           cor="#1d4ed8"
           icon={<Truck size={18} strokeWidth={2.2} />}
-          onClick={() => navigate('/mapa?cat=transportadoras')}
+          onClick={() => navigate('/app/mapa?cat=transportadoras')}
         />
         <Kpi
           rotulo="Operadores logísticos"
@@ -69,7 +69,7 @@ export function PainelPage() {
           detalhe={`${pct(stats.operadores, stats.total)}% do mapa`}
           cor="#7c3aed"
           icon={<Warehouse size={18} strokeWidth={2.2} />}
-          onClick={() => navigate('/mapa?cat=operadores_logisticos')}
+          onClick={() => navigate('/app/mapa?cat=operadores_logisticos')}
         />
         <Kpi
           rotulo="Estados e cidades"
@@ -92,7 +92,7 @@ export function PainelPage() {
           <DonutChart
             series={donutCat}
             centro="empresas"
-            onSelect={(id) => navigate(`/mapa?cat=${id}`)}
+            onSelect={(id) => navigate(`/app/mapa?cat=${id}`)}
           />
         </article>
 
@@ -106,7 +106,7 @@ export function PainelPage() {
           </header>
           <BarList
             max={stats.maxCat}
-            onSelect={(id) => navigate(`/mapa?cat=${id}`)}
+            onSelect={(id) => navigate(`/app/mapa?cat=${id}`)}
             items={stats.porCat.map((c) => ({
               id: c.id,
               label: c.label,

@@ -171,7 +171,7 @@ export function EmpresaPerfil({ empresa: e, eDono = false }: Props) {
             <a className="tv-perfil__btn" href={mapsUrl} target="_blank" rel="noreferrer">
               <MapPin size={14} /> Abrir no Maps
             </a>
-            <Link className="tv-perfil__btn tv-perfil__btn--ghost" to="/mapa">
+            <Link className="tv-perfil__btn tv-perfil__btn--ghost" to="/app/mapa">
               Voltar ao mapa
             </Link>
           </div>

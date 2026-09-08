@@ -254,7 +254,7 @@ export function AppLayout() {
                 ? [{ to: '/perfil', label: 'Meu perfil', icon: <IconProfile />, end: true, badge: 0 }]
                 : []),
               { to: '/feed', label: 'Feed notícias', icon: <IconFeed />, end: false, badge: naoLidas },
-              { to: '/mapa', label: 'Mapa', icon: <IconMap />, end: false, badge: 0 },
+              { to: '/app/mapa', label: 'Mapa', icon: <IconMap />, end: false, badge: 0 },
             ].map((item) => (
               <NavLink
                 key={item.to}

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { ProductMark } from '../components/layout/ProductMark'
 import { useAuth } from '../lib/AuthContext'
 import { LOGO_DOCA_LIVRE_SRC } from '../lib/brandAssets'
 import { slugEmpresaUnico } from '../lib/cadastroStore'
+import { planoPublicoPorId } from '../lib/planosPublicos'
 import { rotaInicial } from '../lib/rotasApp'
 import { CATEGORIAS, NIVEIS_INTEGRACAO, SUBCATEGORIAS_POR_CATEGORIA, categoriaPorId } from '../lib/categorias'
 import { consultarCnpj, maskCnpj, somenteDigitosCnpj } from '../lib/cnpj'
@@ -27,6 +28,8 @@ const STEPS: { id: StepId; label: string }[] = [
 
 export function CadastroEmpresaPage() {
   const { sessao, cadastrar } = useAuth()
+  const [params] = useSearchParams()
+  const planoEscolhido = planoPublicoPorId(params.get('plano'))
   const [step, setStep] = useState<StepId>('empresa')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -278,6 +281,18 @@ export function CadastroEmpresaPage() {
             </span>
             <h1>Cadastre sua empresa</h1>
           </div>
+          {planoEscolhido ? (
+            <p className="cadastro-step-desc">
+              Plano escolhido: <strong>{planoEscolhido.nome}</strong> ({planoEscolhido.preco}
+              {planoEscolhido.periodo}). O pagamento ainda não está ligado — o cadastro já libera o
+              mapa e o perfil.
+            </p>
+          ) : (
+            <p className="cadastro-step-desc">
+              Depois do cadastro você entra no perfil, no feed e no mapa ilimitado.{' '}
+              <Link to="/mapa">Voltar ao mapa</Link>
+            </p>
+          )}
 
           <nav className="cadastro-steps" aria-label="Etapas do cadastro">
             {STEPS.map((s, i) => {

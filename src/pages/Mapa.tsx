@@ -112,7 +112,7 @@ export function MapaPage() {
         label: categoriaPorId(categoria).label,
         limpar: () => {
           setCategoria(null)
-          navigate('/mapa')
+          navigate('/app/mapa')
         },
       })
     }
@@ -209,7 +209,7 @@ export function MapaPage() {
       const id = (s.valor as CategoriaId) || CATEGORIAS.find((c) => semAcento(c.label) === semAcento(s.texto))?.id
       if (id) {
         setCategoria(id)
-        navigate(`/mapa?cat=${id}`)
+        navigate(`/app/mapa?cat=${id}`)
       }
     } else if (s.tipo === 'uf') setUfs((a) => toggleItem(a, s.valor || s.texto))
     else if (s.tipo === 'regiao') setRegioes((a) => toggleItem(a, s.valor || s.texto))
@@ -234,12 +234,12 @@ export function MapaPage() {
     setOrigens([])
     setFuncoes([])
     setCidades([])
-    navigate('/mapa')
+    navigate('/app/mapa')
   }
 
   function setCat(next: CategoriaId | null) {
     setCategoria(next)
-    navigate(next ? `/mapa?cat=${next}` : '/mapa')
+    navigate(next ? `/app/mapa?cat=${next}` : '/app/mapa')
   }
 
   useEffect(() => {

@@ -14,7 +14,7 @@ export function EmpresaPage() {
         ? empresas.find((e) => e.slug === slug)
         : undefined
   const from = params.get('from')
-  const voltarTo = from === 'kanban' ? '/kanban' : from === 'hierarquia' ? '/hierarquia' : from === 'feed' ? '/feed' : '/mapa'
+  const voltarTo = from === 'kanban' ? '/kanban' : from === 'hierarquia' ? '/hierarquia' : from === 'feed' ? '/feed' : '/app/mapa'
   const voltarLabel =
     from === 'kanban'
       ? 'Voltar ao kanban'

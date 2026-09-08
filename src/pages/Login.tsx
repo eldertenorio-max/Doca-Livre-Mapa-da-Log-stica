@@ -122,6 +122,10 @@ export function LoginPage() {
             <Link to="/cadastro" className="portal-login__cadastro-link">
               Cadastre sua empresa
             </Link>
+            {' · '}
+            <Link to="/mapa" className="portal-login__cadastro-link">
+              Ver o mapa
+            </Link>
           </p>
 
           <div className="portal-login__hints">
