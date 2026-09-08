@@ -332,7 +332,17 @@ export function MapaPublicoPage() {
         ))}
       </div>
 
-      <div ref={mapEl} className="mapa-pub__map" role="application" aria-label="Mapa público da logística" />
+      <div className="mapa-pub__map-wrap">
+        <div ref={mapEl} className="mapa-pub__map" role="application" aria-label="Mapa público da logística" />
+        <a
+          className="mapa-pub__atalho"
+          href="https://ofertadecargas.docalivre.com.br/?_v=mapa-publico-v106#/mapa"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Abrir mapa da logística
+        </a>
+      </div>
 
       <p className="mapa-pub__foot">
         {filtradas.length} empresa{filtradas.length === 1 ? '' : 's'} visível

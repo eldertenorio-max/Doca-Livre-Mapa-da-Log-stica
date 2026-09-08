@@ -525,6 +525,14 @@ export function MapaPage() {
 
         <div className="mapa-log__map-wrap">
           <div ref={mapEl} className="mapa-log__map" />
+          <a
+            className="mapa-log__atalho"
+            href="https://ofertadecargas.docalivre.com.br/?_v=mapa-publico-v106#/mapa"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Abrir mapa da logística
+          </a>
           <div className="mapa-log__legenda-wrap" ref={legendaWrapRef}>
             {legendaAberta ? (
               <div className="mapa-log__legenda" role="dialog" aria-label="Ícones por categoria">
