@@ -718,7 +718,8 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
             target="_blank"
             rel="noreferrer"
           >
-            Abrir mapa da frota
+            <span>Mapa da</span>
+            <span>Frota</span>
           </a>
           <div className="mapa-log__legenda-wrap" ref={legendaWrapRef}>
             {legendaAberta ? (
