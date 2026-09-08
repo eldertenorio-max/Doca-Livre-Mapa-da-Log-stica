@@ -1,0 +1,15 @@
+---
+description: Após cada atualização, commitar e enviar para o GitHub para o Render publicar sozinho.
+alwaysApply: true
+---
+
+# Deploy automático no Render
+
+Neste projeto, **depois de cada atualização de produto** (código, UI, feed, perfil, catálogo, correção), faça o deploy sem perguntar de novo.
+
+1. Não commitar `.env`, senhas, chaves privadas nem `SUPABASE_DB_PASSWORD`.
+2. Criar um commit em `main` com mensagem curta em português (foco no porquê).
+3. Enviar com `git push origin main`. O Render publica sozinho a partir do `main`.
+4. Avisar o usuário que o deploy foi enviado e que o site em https://doca-livre-mapa-da-log-stica.onrender.com atualiza em alguns minutos.
+
+Não usar force push. Não alterar `git config`. Este pedido do usuário vale como autorização permanente de commit e push neste repositório.

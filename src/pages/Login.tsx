@@ -4,6 +4,7 @@ import { LOGO_DOCA_LIVRE_SRC } from '../lib/brandAssets'
 import { ProductMark } from '../components/layout/ProductMark'
 import { SUPER_USUARIOS } from '../lib/auth'
 import { useAuth } from '../lib/AuthContext'
+import { rotaInicial } from '../lib/rotasApp'
 import '../styles/auth.css'
 
 const SUPER_HINTS = SUPER_USUARIOS.map((u) => ({
@@ -23,7 +24,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   if (sessao) {
-    return <Navigate to={sessao.isSuper ? from : '/mapa'} replace />
+    return <Navigate to={sessao.isSuper ? from : rotaInicial(sessao)} replace />
   }
 
   function escolher(next: 'Diego' | 'Elder' | 'empresa') {

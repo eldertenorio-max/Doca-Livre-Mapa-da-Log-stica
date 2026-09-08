@@ -4,6 +4,7 @@ import { ProductMark } from '../components/layout/ProductMark'
 import { useAuth } from '../lib/AuthContext'
 import { LOGO_DOCA_LIVRE_SRC } from '../lib/brandAssets'
 import { slugEmpresaUnico } from '../lib/cadastroStore'
+import { rotaInicial } from '../lib/rotasApp'
 import { CATEGORIAS, NIVEIS_INTEGRACAO, SUBCATEGORIAS_POR_CATEGORIA, categoriaPorId } from '../lib/categorias'
 import { consultarCnpj, maskCnpj, somenteDigitosCnpj } from '../lib/cnpj'
 import { UFS_BR, geocodificarEndereco } from '../lib/geo'
@@ -122,7 +123,7 @@ export function CadastroEmpresaPage() {
   )
 
   if (sessao) {
-    return <Navigate to={sessao.isSuper ? '/painel' : '/mapa'} replace />
+    return <Navigate to={rotaInicial(sessao)} replace />
   }
 
   function validateStep(id: StepId): string | null {

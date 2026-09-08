@@ -3,11 +3,13 @@ import { AppLayout } from './components/layout/AppLayout'
 import { useAuth } from './lib/AuthContext'
 import { CadastroEmpresaPage } from './pages/CadastroEmpresa'
 import { EmpresaPage } from './pages/Empresa'
+import { FeedPage } from './pages/Feed'
 import { HierarquiaPage } from './pages/Hierarquia'
 import { KanbanEmpresasPage } from './pages/KanbanEmpresas'
 import { LoginPage } from './pages/Login'
 import { MapaPage } from './pages/Mapa'
 import { PainelPage } from './pages/Painel'
+import { rotaInicial } from './lib/rotasApp'
 
 function RequireAuth() {
   const { sessao } = useAuth()
@@ -20,13 +22,13 @@ function RequireAuth() {
 
 function RequireSuper() {
   const { sessao } = useAuth()
-  if (!sessao?.isSuper) return <Navigate to="/mapa" replace />
+  if (!sessao?.isSuper) return <Navigate to={rotaInicial(sessao)} replace />
   return <Outlet />
 }
 
 function Inicio() {
   const { sessao } = useAuth()
-  return <Navigate to={sessao?.isSuper ? '/painel' : '/mapa'} replace />
+  return <Navigate to={rotaInicial(sessao)} replace />
 }
 
 export default function App() {
@@ -36,10 +38,11 @@ export default function App() {
       <Route path="/cadastro" element={<CadastroEmpresaPage />} />
 
       <Route element={<RequireAuth />}>
-        <Route path="/empresa/:slug" element={<EmpresaPage />} />
         <Route element={<AppLayout />}>
           <Route path="/" element={<Inicio />} />
           <Route path="/mapa" element={<MapaPage />} />
+          <Route path="/feed" element={<FeedPage />} />
+          <Route path="/empresa/:slug" element={<EmpresaPage />} />
           <Route element={<RequireSuper />}>
             <Route path="/painel" element={<PainelPage />} />
             <Route path="/hierarquia" element={<HierarquiaPage />} />

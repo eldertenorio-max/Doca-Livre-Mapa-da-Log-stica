@@ -1,6 +1,7 @@
 import { ExternalLink, Mail, MapPin } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { Empresa } from '../../types'
+import { FeedMural } from '../feed/FeedMural'
 import { categoriaPorId, nivelPorId } from '../../lib/categorias'
 import { labelPapelHierarquia, papelHierarquiaDaEmpresa } from '../../lib/orgHierarchy'
 import { PontoMapPreview } from './PontoMapPreview'
@@ -22,9 +23,10 @@ function enderecoCompleto(e: Empresa) {
 
 type Props = {
   empresa: Empresa
+  eDono?: boolean
 }
 
-export function EmpresaPerfil({ empresa: e }: Props) {
+export function EmpresaPerfil({ empresa: e, eDono = false }: Props) {
   const cat = categoriaPorId(e.categoria)
   const nivel = nivelPorId(e.nivel_integracao)
   const papel = labelPapelHierarquia(papelHierarquiaDaEmpresa(e))
@@ -33,7 +35,7 @@ export function EmpresaPerfil({ empresa: e }: Props) {
   const titulo = `${e.nome_fantasia} ${e.cidade}-${e.uf}`
 
   return (
-    <article className="tv-perfil tv-perfil--fullscreen">
+    <article className="tv-perfil tv-perfil--fullscreen tv-perfil--in-shell">
       <header className="tv-perfil__top">
         <div className="tv-perfil__brand-row">
           {e.logo_url ? (
@@ -130,6 +132,25 @@ export function EmpresaPerfil({ empresa: e }: Props) {
               </ul>
             </section>
           ) : null}
+
+          <section className="tv-perfil__section tv-perfil__section--feed">
+            <h2>{eDono ? 'Minhas publicações' : 'Publicações'}</h2>
+            <p className="tv-perfil__feed-intro">
+              {eDono
+                ? 'Tudo o que você divulga no feed fica salvo neste perfil.'
+                : `Divulgações de ${e.nome_fantasia} na rede do mapa.`}
+            </p>
+            <FeedMural
+              empresaFiltro={{ id: e.id, slug: e.slug }}
+              mostrarComposer={eDono}
+              composerEmpresa={e}
+              vazio={
+                eDono
+                  ? 'Você ainda não publicou. Escreva acima para divulgar um serviço.'
+                  : 'Esta empresa ainda não publicou no feed.'
+              }
+            />
+          </section>
 
           <div className="tv-perfil__actions">
             {wa ? (

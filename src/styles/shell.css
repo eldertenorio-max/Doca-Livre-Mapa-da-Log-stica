@@ -773,6 +773,25 @@ a.sidebar-section:first-of-type {
   opacity: 1;
 }
 
+.sidebar-section-badge {
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--brand-yellow);
+  color: #111;
+  font-size: 0.65rem;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+  opacity: 0;
+}
+
+.sidebar.sidebar--wide .sidebar-section-badge {
+  opacity: 1;
+}
+
 .sidebar-section-chevron {
   flex-shrink: 0;
   font-size: 1.1rem;

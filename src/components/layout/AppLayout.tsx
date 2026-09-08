@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../lib/AuthContext'
+import { contarNotificacoesNaoLidas } from '../../lib/feedStore'
 import { LOGO_DOCA_LIVRE_SRC } from '../../lib/brandAssets'
 import { ProductMark } from './ProductMark'
 import '../../styles/shell.css'
@@ -35,6 +36,24 @@ function IconHierarchy() {
   )
 }
 
+function IconProfile() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.75" />
+      <path d="M5 19.2c1.4-3.2 3.9-4.8 7-4.8s5.6 1.6 7 4.8" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function IconFeed() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M5 4.8h14v3.2H5zM5 10.4h14V20H5z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+      <path d="M8 13.2h8M8 16.4h5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function IconMap() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -58,6 +77,7 @@ export function AppLayout() {
   const [isNarrow, setIsNarrow] = useState(false)
   const [clock, setClock] = useState(() => formatClock(new Date()))
   const [menuAberto, setMenuAberto] = useState(false)
+  const [naoLidas, setNaoLidas] = useState(0)
 
   const iniciais = (sessao?.nome || 'DL')
     .split(/\s+/)
@@ -83,6 +103,21 @@ export function AppLayout() {
       window.removeEventListener('resize', onResize)
     }
   }, [])
+
+  useEffect(() => {
+    if (!sessao?.usuario) return
+    let ativo = true
+    async function tick() {
+      const n = await contarNotificacoesNaoLidas(sessao!.usuario)
+      if (ativo) setNaoLidas(n)
+    }
+    void tick()
+    const id = window.setInterval(() => void tick(), 25_000)
+    return () => {
+      ativo = false
+      window.clearInterval(id)
+    }
+  }, [sessao?.usuario])
 
   const sidebarWide = sidebarPinned || (sidebarHover && !isNarrow)
 
@@ -162,7 +197,7 @@ export function AppLayout() {
                       navigate(`/empresa/${minhaEmpresa.slug}`)
                     }}
                   >
-                    Minha empresa
+                    Perfil
                   </button>
                 ) : null}
                 <button
@@ -210,15 +245,19 @@ export function AppLayout() {
             {[
               ...(sessao?.isSuper
                 ? [
-                    { to: '/painel', label: 'Painel', icon: <IconChart />, end: true },
-                    { to: '/hierarquia', label: 'Hierarquia', icon: <IconHierarchy />, end: false },
-                    { to: '/kanban', label: 'Kanban de empresas', icon: <IconKanban />, end: false },
+                    { to: '/painel', label: 'Painel', icon: <IconChart />, end: true, badge: 0 },
+                    { to: '/hierarquia', label: 'Hierarquia', icon: <IconHierarchy />, end: false, badge: 0 },
+                    { to: '/kanban', label: 'Kanban de empresas', icon: <IconKanban />, end: false, badge: 0 },
+                    { to: '/mapa', label: 'Mapa', icon: <IconMap />, end: false, badge: 0 },
+                    { to: '/feed', label: 'Feed notícias', icon: <IconFeed />, end: false, badge: naoLidas },
                   ]
-                : []),
-              { to: '/mapa', label: 'Mapa', icon: <IconMap />, end: false },
-              ...(minhaEmpresa
-                ? [{ to: `/empresa/${minhaEmpresa.slug}`, label: 'Minha empresa', icon: <IconKanban />, end: false }]
-                : []),
+                : [
+                    ...(minhaEmpresa
+                      ? [{ to: `/empresa/${minhaEmpresa.slug}`, label: 'Perfil', icon: <IconProfile />, end: false, badge: 0 }]
+                      : []),
+                    { to: '/feed', label: 'Feed notícias', icon: <IconFeed />, end: false, badge: naoLidas },
+                    { to: '/mapa', label: 'Mapa', icon: <IconMap />, end: false, badge: 0 },
+                  ]),
             ].map((item) => (
               <NavLink
                 key={item.to}
@@ -235,6 +274,7 @@ export function AppLayout() {
                   <span className={`sidebar-section-trigger${isActive ? ' active' : ''}`}>
                     <span className="sidebar-section-icon">{item.icon}</span>
                     <span className="sidebar-section-title">{item.label}</span>
+                    {item.badge ? <span className="sidebar-section-badge">{item.badge > 9 ? '9+' : item.badge}</span> : null}
                     <span className={`sidebar-section-chevron${isActive ? ' sidebar-section-chevron--open' : ''}`}>
                       ›
                     </span>

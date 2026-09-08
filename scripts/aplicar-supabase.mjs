@@ -45,20 +45,69 @@ async function aplicarViaManagement() {
 }
 
 async function aplicarViaPostgres() {
+  const password = process.env.SUPABASE_DB_PASSWORD || ''
   const dbUrl = process.env.DATABASE_URL || ''
-  if (!dbUrl || /YOUR-PASSWORD|SUA_SENHA|\[/.test(dbUrl)) return false
-  try {
-    const { default: pg } = await import('pg')
-    const client = new pg.Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } })
-    await client.connect()
-    await client.query(sql)
-    await client.end()
-    console.log('Schema aplicado via DATABASE_URL.')
-    return true
-  } catch (err) {
-    console.warn('Postgres:', err instanceof Error ? err.message : err)
-    return false
+  if (!password && (!dbUrl || /YOUR-PASSWORD|SUA_SENHA|\[/.test(dbUrl))) return false
+
+  const { default: pg } = await import('pg')
+  const tentativas = []
+  if (dbUrl && !/YOUR-PASSWORD|SUA_SENHA|\[/.test(dbUrl)) {
+    tentativas.push({ label: 'DATABASE_URL', connectionString: dbUrl, ssl: { rejectUnauthorized: false } })
   }
+  if (password) {
+    tentativas.push(
+      {
+        label: 'db direto :5432',
+        host: `db.${PROJECT_REF}.supabase.co`,
+        port: 5432,
+        user: 'postgres',
+        password,
+        database: 'postgres',
+        ssl: { rejectUnauthorized: false },
+        connectionTimeoutMillis: 20000,
+      },
+      {
+        label: 'pooler sessão :5432',
+        host: 'aws-0-sa-east-1.pooler.supabase.com',
+        port: 5432,
+        user: `postgres.${PROJECT_REF}`,
+        password,
+        database: 'postgres',
+        ssl: { rejectUnauthorized: false },
+        connectionTimeoutMillis: 20000,
+      },
+      {
+        label: 'pooler transação :6543',
+        host: 'aws-0-sa-east-1.pooler.supabase.com',
+        port: 6543,
+        user: `postgres.${PROJECT_REF}`,
+        password,
+        database: 'postgres',
+        ssl: { rejectUnauthorized: false },
+        connectionTimeoutMillis: 20000,
+      },
+    )
+  }
+
+  for (const cfg of tentativas) {
+    const client = new pg.Client(cfg)
+    try {
+      await client.connect()
+      await client.query(sql)
+      await client.end()
+      console.log(`Schema aplicado via ${cfg.label}.`)
+      return true
+    } catch (err) {
+      try {
+        await client.end()
+      } catch {
+        /* ignore */
+      }
+      const msg = err instanceof Error ? err.message : String(err)
+      console.warn(`Postgres (${cfg.label}):`, msg.split('\n')[0])
+    }
+  }
+  return false
 }
 
 async function tabelaPronta() {
