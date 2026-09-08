@@ -50,7 +50,7 @@ async function upsertLote<T extends { id?: string; usuario?: string }>(tabela: s
 
 export async function buscarEmpresasRemotas(): Promise<Empresa[] | null> {
   if (!supabase) return null
-  const { data, error } = await supabase.from('mapa_empresas').select('payload').limit(2000)
+  const { data, error } = await supabase.from('mapa_empresas').select('payload').limit(4000)
   if (error) {
     console.warn('Supabase empresas:', error.message)
     return null
@@ -88,7 +88,23 @@ export async function sincronizarCatalogo(): Promise<Empresa[]> {
   try {
     await enviarCatalogoSeVazio(EMPRESAS)
     const remotas = await buscarEmpresasRemotas()
-    if (remotas && remotas.length > 0) return remotas
+    if (remotas && remotas.length > 0) {
+      const ids = new Set(remotas.map((e) => e.id))
+      const slugs = new Set(remotas.map((e) => e.slug))
+      const novas = EMPRESAS.filter((e) => !ids.has(e.id) && !slugs.has(e.slug))
+      if (novas.length > 0) {
+        try {
+          const lote = 80
+          for (let i = 0; i < novas.length; i += lote) {
+            await upsertLote('mapa_empresas', novas.slice(i, i + lote).map(linhaDeEmpresa))
+          }
+        } catch (err) {
+          console.warn('Falha ao enviar unidades novas ao Supabase', err)
+        }
+        return [...remotas, ...novas]
+      }
+      return remotas
+    }
   } catch (err) {
     console.warn('Falha ao sincronizar catálogo com o Supabase', err)
   }

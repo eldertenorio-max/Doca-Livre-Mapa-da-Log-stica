@@ -137,6 +137,8 @@ export function empresasPorNome(empresas: Empresa[], termo: string): Empresa[] {
     })
     .sort((a, b) => a.nome_fantasia.localeCompare(b.nome_fantasia, 'pt-BR') || a.cidade.localeCompare(b.cidade, 'pt-BR'))
 }
+
+export function slugify(nome: string) {
   return semAcento(nome)
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')

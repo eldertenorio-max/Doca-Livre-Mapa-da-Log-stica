@@ -5,6 +5,7 @@ import { EMPRESAS_VARREDURA } from './empresasVarredura'
 import { EMPRESAS_LEVA_500 } from './empresasLeva500'
 import { EMPRESAS_LEVA_500B } from './empresasLeva500b'
 import { EMPRESAS_LEVA_500C } from './empresasLeva500c'
+import { EMPRESAS_FILIAIS } from './empresasFiliais'
 
 function emp(e: Empresa): Empresa {
   return e
@@ -1151,6 +1152,7 @@ export const EMPRESAS: Empresa[] = [
   ...EMPRESAS_LEVA_500,
   ...EMPRESAS_LEVA_500B,
   ...EMPRESAS_LEVA_500C,
+  ...EMPRESAS_FILIAIS,
 ]
 
 export function empresaPorSlug(slug: string) {
