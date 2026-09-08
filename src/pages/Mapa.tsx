@@ -44,9 +44,16 @@ function temCoordenada(e: Empresa) {
   return Number.isFinite(e.lat) && Number.isFinite(e.lng)
 }
 
-function pinHtml(e: Empresa, selecionada = false) {
+function pinIcon(e: Empresa, selecionada = false) {
   const cat = categoriaPorId(e.categoria)
-  return `<div class="pin-empresa__inner${selecionada ? ' is-selecionada' : ''}" style="background:${cat.cor}" title="${escapeHtml(e.nome_fantasia)}">${cat.emoji}</div>`
+  const tamanho = selecionada ? 48 : 36
+  return L.divIcon({
+    className: `pin-empresa${selecionada ? ' is-selecionada' : ''}`,
+    html: `<div class="pin-empresa__inner${selecionada ? ' is-selecionada' : ''}" style="background:${cat.cor}" title="${escapeHtml(e.nome_fantasia)}">${cat.emoji}</div>`,
+    iconSize: [tamanho, tamanho],
+    iconAnchor: [tamanho / 2, tamanho],
+    popupAnchor: [0, -tamanho + 4],
+  })
 }
 
 function popupInternoHtml(e: Empresa) {
@@ -100,6 +107,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
   const mapRef = useRef<L.Map | null>(null)
   const layerRef = useRef<L.LayerGroup | null>(null)
   const markersRef = useRef(new Map<string, L.Marker>())
+  const manterFocoRef = useRef(false)
   const [query, setQuery] = useState('')
   const catParam = searchParams.get('cat')
   const [categoria, setCategoria] = useState<CategoriaId | null>(() =>
@@ -219,6 +227,14 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
   }, [])
 
   useEffect(() => {
+    if (manterFocoRef.current) {
+      manterFocoRef.current = false
+      return
+    }
+    setSelecionada(null)
+  }, [query, categoria, ufs, regioes, niveis, origens, funcoes, cidades])
+
+  useEffect(() => {
     const map = mapRef.current
     const layer = layerRef.current
     if (!map || !layer) return
@@ -227,21 +243,17 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
 
     for (const e of filtradas) {
       if (!temCoordenada(e)) continue
-      const icon = L.divIcon({
-        className: `pin-empresa${selecionada === e.id ? ' is-selecionada' : ''}`,
-        html: pinHtml(e, selecionada === e.id),
-        iconSize: [36, 36],
-        iconAnchor: [18, 36],
-      })
       const marker = L.marker([e.lat, e.lng], {
-        icon,
-        zIndexOffset: selecionada === e.id ? 1000 : 0,
+        icon: pinIcon(e, false),
+        riseOnHover: true,
+        title: e.nome_fantasia,
       })
       const cat = categoriaPorId(e.categoria)
       marker.bindPopup(visitante ? popupPublicoHtml(e) : popupInternoHtml(e), {
         className: visitante ? 'mapa-pub-leaflet' : '',
         maxWidth: 280,
         minWidth: 220,
+        autoPanPadding: [48, 72],
       })
       if (!visitante) {
         marker.bindTooltip(
@@ -249,38 +261,54 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
           { direction: 'top', offset: [0, -28] },
         )
         marker.on('click', () => {
+          manterFocoRef.current = true
           setSelecionada(e.id)
           navigate(`/empresa/${e.slug}?from=mapa`)
         })
       } else {
-        marker.on('click', () => setSelecionada(e.id))
+        marker.on('click', () => {
+          manterFocoRef.current = true
+          setSelecionada(e.id)
+        })
       }
       marker.addTo(layer)
       markersRef.current.set(e.id, marker)
     }
 
-    const foco = selecionada ? filtradas.find((e) => e.id === selecionada && temCoordenada(e)) : undefined
-    if (foco) {
-      map.setView([foco.lat, foco.lng], Math.max(map.getZoom(), 13), { animate: true })
-      const marker = markersRef.current.get(foco.id)
-      window.setTimeout(() => {
-        marker?.openPopup()
-        map.panTo([foco.lat, foco.lng], { animate: true })
-      }, 80)
-      return
-    }
-
     const comPonto = filtradas.filter(temCoordenada)
     if (comPonto.length === 1) {
-      map.setView([comPonto[0].lat, comPonto[0].lng], 10)
+      map.setView([comPonto[0].lat, comPonto[0].lng], 12)
     } else if (comPonto.length > 1) {
       const bounds = L.latLngBounds(comPonto.map((e) => [e.lat, e.lng] as [number, number]))
-      map.fitBounds(bounds.pad(0.18), { maxZoom: 10 })
+      map.fitBounds(bounds.pad(0.18), { maxZoom: 12, padding: [36, 36] })
     }
-  }, [filtradas, navigate, visitante, selecionada])
+    window.setTimeout(() => map.invalidateSize(), 80)
+  }, [filtradas, navigate, visitante])
+
+  useEffect(() => {
+    for (const e of filtradas) {
+      const m = markersRef.current.get(e.id)
+      if (!m) continue
+      const ativo = Boolean(selecionada) && e.id === selecionada
+      m.setIcon(pinIcon(e, ativo))
+      m.setZIndexOffset(ativo ? 2000 : 0)
+    }
+    if (!selecionada) return
+    const map = mapRef.current
+    const marker = markersRef.current.get(selecionada)
+    const e = filtradas.find((x) => x.id === selecionada && temCoordenada(x))
+    if (!map || !marker || !e) return
+    map.invalidateSize()
+    map.setView([e.lat, e.lng], Math.max(map.getZoom(), 14), { animate: true })
+    window.setTimeout(() => {
+      marker.openPopup()
+      map.panTo([e.lat, e.lng], { animate: true })
+    }, 120)
+  }, [selecionada])
 
   function irPara(e: Empresa) {
     if (!temCoordenada(e)) return
+    manterFocoRef.current = true
     setSelecionada(e.id)
     window.setTimeout(() => {
       document.getElementById(`emp-lista-${e.id}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
