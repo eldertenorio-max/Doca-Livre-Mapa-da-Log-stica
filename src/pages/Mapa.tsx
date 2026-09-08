@@ -8,9 +8,10 @@ import { CATEGORIAS, NIVEIS_INTEGRACAO, categoriaPorId } from '../lib/categorias
 import { LOGO_DOCA_LIVRE_SRC } from '../lib/brandAssets'
 import { ORIGEM_META, REGIOES, catValida } from '../lib/painelStats'
 import {
+  carregarEstadoBuscasPublicas,
   estadoBuscasPublicas,
   MAPA_PUBLICO_LIMITE_BUSCAS,
-  registrarBuscaPublica,
+  registrarBuscaPublicaRemota,
 } from '../lib/mapaPublicoBuscas'
 import { PLANOS_PUBLICOS } from '../lib/planosPublicos'
 import {
@@ -114,10 +115,19 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     visitante ? estadoBuscasPublicas().restam : MAPA_PUBLICO_LIMITE_BUSCAS,
   )
   const [showPaywall, setShowPaywall] = useState(() => visitante && estadoBuscasPublicas().esgotado)
+  const consumindoRef = useRef(false)
 
   useEffect(() => {
     if (catValida(catParam)) setCategoria(catParam)
   }, [catParam])
+
+  useEffect(() => {
+    if (!visitante) return
+    void carregarEstadoBuscasPublicas().then((estado) => {
+      setRestam(estado.restam)
+      if (estado.esgotado) setShowPaywall(true)
+    })
+  }, [visitante])
 
   const filtros = useMemo(
     () => ({ query, categoria, ufs, regioes, niveis, origens, funcoes, cidades }),
@@ -246,21 +256,22 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     mapRef.current?.setView([e.lat, e.lng], 12)
   }
 
-  function consumirBusca() {
+  async function consumirBusca() {
     if (!visitante) return true
-    if (estadoBuscasPublicas().esgotado) {
-      setShowPaywall(true)
-      setRestam(0)
-      return false
+    if (consumindoRef.current) return false
+    consumindoRef.current = true
+    try {
+      const consumo = await registrarBuscaPublicaRemota()
+      setRestam(consumo.restam)
+      if (!consumo.ok) {
+        setShowPaywall(true)
+        return false
+      }
+      if (consumo.restam === 0) setShowPaywall(true)
+      return true
+    } finally {
+      consumindoRef.current = false
     }
-    const consumo = registrarBuscaPublica()
-    setRestam(consumo.restam)
-    if (!consumo.ok) {
-      setShowPaywall(true)
-      return false
-    }
-    if (consumo.restam === 0) setShowPaywall(true)
-    return true
   }
 
   function abrirEmpresa(e: Empresa) {
@@ -271,8 +282,8 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     navigate(`/empresa/${e.slug}?from=mapa`)
   }
 
-  function aplicarSugestao(s: SugestaoBusca) {
-    if (!consumirBusca()) return
+  async function aplicarSugestao(s: SugestaoBusca) {
+    if (!(await consumirBusca())) return
     if (s.tipo !== 'empresa') setQuery('')
     if (s.tipo === 'funcao') setFuncoes((a) => toggleItem(a, s.texto))
     else if (s.tipo === 'categoria') {
@@ -453,8 +464,8 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
               {publico
                 ? visitante
                   ? restam > 0
-                    ? ` ${restam} de ${MAPA_PUBLICO_LIMITE_BUSCAS} buscas grátis restantes.`
-                    : ' Buscas grátis esgotadas.'
+                    ? ` ${restam} de ${MAPA_PUBLICO_LIMITE_BUSCAS} buscas grátis restantes hoje.`
+                    : ' Buscas grátis de hoje esgotadas.'
                   : ' Conta logada · buscas ilimitadas.'
                 : ''}
             </p>
@@ -682,8 +693,8 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
           <div className="mapa-pub-modal__card mapa-pub-modal__card--planos">
             <h2 id="mapa-pub-pay-title">Escolha um plano</h2>
             <p>
-              As {MAPA_PUBLICO_LIMITE_BUSCAS} buscas grátis acabaram. Assine para continuar no mapa e
-              ver contato das empresas.
+              As {MAPA_PUBLICO_LIMITE_BUSCAS} buscas grátis de hoje acabaram. Assine para continuar no
+              mapa e ver contato das empresas.
             </p>
             <div className="mapa-pub-planos">
               {PLANOS_PUBLICOS.map((plano) => (
