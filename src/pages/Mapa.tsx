@@ -114,7 +114,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
   const [restam, setRestam] = useState(() =>
     visitante ? estadoBuscasPublicas().restam : MAPA_PUBLICO_LIMITE_BUSCAS,
   )
-  const [showPaywall, setShowPaywall] = useState(() => visitante && estadoBuscasPublicas().esgotado)
+  const [showPaywall, setShowPaywall] = useState(false)
   const consumindoRef = useRef(false)
 
   useEffect(() => {
@@ -125,7 +125,6 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     if (!visitante) return
     void carregarEstadoBuscasPublicas().then((estado) => {
       setRestam(estado.restam)
-      if (estado.esgotado) setShowPaywall(true)
     })
   }, [visitante])
 
@@ -267,7 +266,6 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
         setShowPaywall(true)
         return false
       }
-      if (consumo.restam === 0) setShowPaywall(true)
       return true
     } finally {
       consumindoRef.current = false
