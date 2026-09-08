@@ -5,6 +5,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useAuth } from '../lib/AuthContext'
 import { CATEGORIAS, NIVEIS_INTEGRACAO, categoriaPorId } from '../lib/categorias'
+import { LOGO_DOCA_LIVRE_SRC } from '../lib/brandAssets'
 import { ORIGEM_META, REGIOES, catValida } from '../lib/painelStats'
 import {
   estadoBuscasPublicas,
@@ -336,14 +337,15 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
 
   return (
     <div className={`mapa-log animate-fade-up${publico ? ' mapa-log--publico' : ''}`}>
-      <header className="mapa-log__head">
-        <div>
-          <h1 className="mapa-log__title">Mapa da Logística</h1>
-          <p className="mapa-log__sub">
-            Clique no campo, digite e escolha a sugestão. O mapa mostra só as empresas selecionadas.
-          </p>
-        </div>
-        {publico ? (
+      {publico ? (
+        <header className="mapa-log__brandbar">
+          <Link to="/mapa" className="mapa-log__brand">
+            <img src={LOGO_DOCA_LIVRE_SRC} alt="Doca Livre" />
+            <span>
+              <strong>Doca Livre</strong>
+              <em>Mapa da Logística</em>
+            </span>
+          </Link>
           <div className="mapa-log__head-acoes">
             <Link className="mapa-log__btn mapa-log__btn--ghost" to="/login">
               Entrar
@@ -352,8 +354,23 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
               Cadastrar
             </Link>
           </div>
-        ) : null}
-      </header>
+        </header>
+      ) : null}
+      <div className={publico ? 'mapa-log__publico-body' : 'mapa-log__body'}>
+      {publico ? (
+        <p className="mapa-log__sub mapa-log__sub--publico">
+          Clique no campo, digite e escolha a sugestão. O mapa mostra só as empresas selecionadas.
+        </p>
+      ) : (
+        <header className="mapa-log__head">
+          <div>
+            <h1 className="mapa-log__title">Mapa da Logística</h1>
+            <p className="mapa-log__sub">
+              Clique no campo, digite e escolha a sugestão. O mapa mostra só as empresas selecionadas.
+            </p>
+          </div>
+        </header>
+      )}
 
       <div className="mapa-log__layout">
         <aside className="mapa-log__lista">
@@ -657,6 +674,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
             </button>
           </div>
         </div>
+      </div>
       </div>
 
       {showPaywall ? (

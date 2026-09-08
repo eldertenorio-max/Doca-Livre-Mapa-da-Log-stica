@@ -9,9 +9,71 @@
 .mapa-log--publico {
   height: 100dvh;
   max-height: 100dvh;
-  padding: 12px 14px 14px;
+  padding: 0;
+  gap: 0;
   box-sizing: border-box;
   background: #eef2f6;
+}
+
+.mapa-log__brandbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mapa-log__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.mapa-log__brand img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.mapa-log__brand strong {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 900;
+  line-height: 1.1;
+  color: #0f172a;
+}
+
+.mapa-log__brand em {
+  display: block;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.mapa-log__publico-body,
+.mapa-log__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mapa-log__publico-body {
+  padding: 12px 14px 14px;
+}
+
+.mapa-log__sub--publico {
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .mapa-log__head-acoes {
@@ -572,6 +634,9 @@
 @media (max-width: 900px) {
   .mapa-log {
     height: auto;
+  }
+  .mapa-log--publico {
+    height: 100dvh;
   }
   .mapa-log__layout {
     grid-template-columns: 1fr;
