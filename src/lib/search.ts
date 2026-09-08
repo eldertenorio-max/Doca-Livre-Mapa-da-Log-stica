@@ -126,7 +126,17 @@ export function toggleItem<T>(lista: T[], valor: T): T[] {
   return lista.includes(valor) ? lista.filter((x) => x !== valor) : [...lista, valor]
 }
 
-export function slugify(nome: string) {
+export function empresasPorNome(empresas: Empresa[], termo: string): Empresa[] {
+  const q = semAcento(termo).trim()
+  if (q.length < 2) return []
+  return empresas
+    .filter((e) => {
+      const nome = semAcento(e.nome_fantasia)
+      const razao = semAcento(e.razao_social)
+      return nome.includes(q) || razao.includes(q)
+    })
+    .sort((a, b) => a.nome_fantasia.localeCompare(b.nome_fantasia, 'pt-BR') || a.cidade.localeCompare(b.cidade, 'pt-BR'))
+}
   return semAcento(nome)
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
@@ -210,9 +220,19 @@ function catalogoSugestoes(empresas: Empresa[]): SugestaoBusca[] {
   const ufs = new Set<string>()
   for (const e of empresas) {
     ufs.add(e.uf)
-    lista.push({ texto: e.nome_fantasia, tipo: 'empresa', detalhe: `${e.cidade}/${e.uf}` })
+    lista.push({
+      texto: e.nome_fantasia,
+      tipo: 'empresa',
+      detalhe: `${e.cidade}/${e.uf}`,
+      valor: e.id,
+    })
     if (e.razao_social && semAcento(e.razao_social) !== semAcento(e.nome_fantasia)) {
-      lista.push({ texto: e.razao_social, tipo: 'empresa', detalhe: e.nome_fantasia })
+      lista.push({
+        texto: e.razao_social,
+        tipo: 'empresa',
+        detalhe: `${e.nome_fantasia} · ${e.cidade}/${e.uf}`,
+        valor: e.id,
+      })
     }
     lista.push({ texto: e.cidade, tipo: 'lugar', detalhe: e.uf, valor: e.cidade })
     lista.push({ texto: `${e.cidade} ${e.uf}`, tipo: 'lugar', valor: e.cidade })
@@ -224,7 +244,10 @@ function catalogoSugestoes(empresas: Empresa[]): SugestaoBusca[] {
   const vistos = new Set<string>()
   const unicos: SugestaoBusca[] = []
   for (const item of lista) {
-    const key = `${item.tipo}:${semAcento(item.valor ?? item.texto)}`
+    const key =
+      item.tipo === 'empresa'
+        ? `${item.tipo}:${item.valor}:${semAcento(item.texto)}`
+        : `${item.tipo}:${semAcento(item.valor ?? item.texto)}`
     if (!key || vistos.has(key)) continue
     vistos.add(key)
     unicos.push(item)
@@ -257,12 +280,35 @@ const PESO_TIPO: Record<TipoSugestao, number> = {
 export function sugerirBusca(query: string, empresas: Empresa[], limite = 8): SugestaoBusca[] {
   const q = semAcento(query).trim()
   if (!q) return FRASES_CURADAS.slice(0, limite)
-  return catalogoSugestoes(empresas)
+
+  const porNome = empresasPorNome(empresas, query)
+  const grupo: SugestaoBusca[] =
+    porNome.length > 0
+      ? [
+          {
+            texto: query.trim(),
+            tipo: 'empresa',
+            detalhe:
+              porNome.length === 1
+                ? '1 empresa — escolha na lista'
+                : `${porNome.length} empresas — escolha na lista`,
+          },
+        ]
+      : []
+  const empresasSug: SugestaoBusca[] = porNome.slice(0, 12).map((e) => ({
+    texto: e.nome_fantasia,
+    tipo: 'empresa',
+    detalhe: `${e.cidade}/${e.uf}`,
+    valor: e.id,
+  }))
+
+  const outros = catalogoSugestoes(empresas)
     .map((item) => ({ item, pontos: pontuaSugestao(item, q) + PESO_TIPO[item.tipo] }))
-    .filter((x) => x.pontos >= 100)
+    .filter((x) => x.pontos >= 100 && x.item.tipo !== 'empresa')
     .sort((a, b) => b.pontos - a.pontos || a.item.texto.localeCompare(b.item.texto, 'pt-BR'))
-    .slice(0, limite)
     .map((x) => x.item)
+
+  return [...grupo, ...empresasSug, ...outros].slice(0, Math.max(limite, grupo.length + empresasSug.length))
 }
 
 export function ufsDoCadastro(empresas: Empresa[]) {

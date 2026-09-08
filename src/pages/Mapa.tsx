@@ -17,6 +17,7 @@ import { PLANOS_PUBLICOS } from '../lib/planosPublicos'
 import {
   aplicarFiltros,
   cidadesDoCadastro,
+  empresasPorNome,
   frasesSugestaoRapida,
   labelTipoSugestao,
   semAcento,
@@ -155,6 +156,17 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
 
   const filtradas = useMemo(() => aplicarFiltros(empresas, filtros), [empresas, filtros])
 
+  const porNome = useMemo(
+    () => (query.trim().length >= 2 ? empresasPorNome(empresas, query) : []),
+    [empresas, query],
+  )
+
+  const listaExibida = useMemo(() => {
+    if (porNome.length === 0) return filtradas
+    const ids = new Set(porNome.map((e) => e.id))
+    return filtradas.filter((e) => ids.has(e.id))
+  }, [filtradas, porNome])
+
   const sugestoes = useMemo(() => sugerirBusca(query, empresas, 10), [query, empresas])
 
   const contagem = useMemo(() => {
@@ -243,7 +255,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     layer.clearLayers()
     markersRef.current.clear()
 
-    for (const e of filtradas) {
+    for (const e of listaExibida) {
       if (!temCoordenada(e)) continue
       const marker = L.marker([e.lat, e.lng], {
         icon: pinIcon(e, false),
@@ -277,18 +289,21 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
       markersRef.current.set(e.id, marker)
     }
 
-    const comPonto = filtradas.filter(temCoordenada)
-    if (comPonto.length === 1) {
-      map.setView([comPonto[0].lat, comPonto[0].lng], 12)
-    } else if (comPonto.length > 1) {
-      const bounds = L.latLngBounds(comPonto.map((e) => [e.lat, e.lng] as [number, number]))
-      map.fitBounds(bounds.pad(0.18), { maxZoom: 12, padding: [36, 36] })
+    const comPonto = listaExibida.filter(temCoordenada)
+    const aguardarEscolha = query.trim().length >= 2 && porNome.length > 0
+    if (!aguardarEscolha) {
+      if (comPonto.length === 1) {
+        map.setView([comPonto[0].lat, comPonto[0].lng], 12)
+      } else if (comPonto.length > 1) {
+        const bounds = L.latLngBounds(comPonto.map((e) => [e.lat, e.lng] as [number, number]))
+        map.fitBounds(bounds.pad(0.18), { maxZoom: 12, padding: [36, 36] })
+      }
     }
     window.setTimeout(() => map.invalidateSize(), 80)
-  }, [filtradas, navigate, visitante])
+  }, [listaExibida, navigate, visitante, query, porNome.length])
 
   useEffect(() => {
-    for (const e of filtradas) {
+    for (const e of listaExibida) {
       const m = markersRef.current.get(e.id)
       if (!m) continue
       const ativo = Boolean(selecionada) && e.id === selecionada
@@ -298,7 +313,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     if (!selecionada) return
     const map = mapRef.current
     const marker = markersRef.current.get(selecionada)
-    const e = filtradas.find((x) => x.id === selecionada && temCoordenada(x))
+    const e = listaExibida.find((x) => x.id === selecionada && temCoordenada(x))
     if (!map || !marker || !e) return
     map.invalidateSize()
     map.setView([e.lat, e.lng], Math.max(map.getZoom(), 14), { animate: true })
@@ -359,8 +374,10 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     else if (s.tipo === 'lugar') setCidades((a) => toggleItem(a, s.valor || s.texto))
     else if (s.tipo === 'empresa') {
       setQuery(s.texto)
-      const e = empresas.find((x) => semAcento(x.nome_fantasia) === semAcento(s.texto) || semAcento(x.razao_social) === semAcento(s.texto))
-      if (e) irPara(e)
+      if (s.valor) {
+        const e = empresas.find((x) => x.id === s.valor)
+        if (e) irPara(e)
+      }
     }
     setSugestoesAbertas(false)
     setSugestaoAtiva(0)
@@ -706,9 +723,13 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
             </button>
           </div>
 
-          <p className="mapa-log__result">{filtradas.length} empresa(s) no mapa</p>
+          <p className="mapa-log__result">
+            {porNome.length > 0
+              ? `${listaExibida.length} empresa(s) para “${query.trim()}” — clique para ver no mapa`
+              : `${listaExibida.length} empresa(s) no mapa`}
+          </p>
           <ul className="mapa-log__empresas">
-            {filtradas.map((e) => {
+            {listaExibida.map((e) => {
               const cat = categoriaPorId(e.categoria)
               return (
                 <li key={e.id} id={`emp-lista-${e.id}`} style={{ display: 'flex', gap: 4, alignItems: 'stretch' }}>
