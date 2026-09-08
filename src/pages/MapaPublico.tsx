@@ -58,6 +58,7 @@ export function MapaPublicoPage() {
   const mapRef = useRef<L.Map | null>(null)
   const layerRef = useRef<L.LayerGroup | null>(null)
   const buscaFitRef = useRef('')
+  const buscaWrapRef = useRef<HTMLDivElement>(null)
   const [query, setQuery] = useState('')
   const [aplicada, setAplicada] = useState('')
   const [categoria, setCategoria] = useState<CategoriaId | null>(null)
@@ -103,8 +104,16 @@ export function MapaPublicoPage() {
         navigate(`/empresa/${slug}?from=mapa`)
       }
     }
+    function fecharSugestoes(ev: MouseEvent) {
+      const alvo = ev.target as Node
+      if (!buscaWrapRef.current?.contains(alvo)) setSugestoesAbertas(false)
+    }
     document.addEventListener('click', onClick)
-    return () => document.removeEventListener('click', onClick)
+    document.addEventListener('mousedown', fecharSugestoes)
+    return () => {
+      document.removeEventListener('click', onClick)
+      document.removeEventListener('mousedown', fecharSugestoes)
+    }
   }, [navigate])
 
   useEffect(() => {
@@ -248,7 +257,7 @@ export function MapaPublicoPage() {
 
       <div className="mapa-pub__bar">
         <form className="mapa-pub__search" onSubmit={onBuscar}>
-          <div>
+          <div ref={buscaWrapRef}>
             <input
               className="mapa-pub__q"
               value={query}
@@ -258,6 +267,12 @@ export function MapaPublicoPage() {
                 setSugestoesAbertas(true)
               }}
               onFocus={() => setSugestoesAbertas(true)}
+              onKeyDown={(ev) => {
+                if (ev.key === 'Escape') {
+                  setSugestoesAbertas(false)
+                  ;(ev.target as HTMLInputElement).blur()
+                }
+              }}
               placeholder="Buscar empresa, cidade, UF ou serviço — ex.: empilhadeira SP"
               autoComplete="off"
               spellCheck={false}
