@@ -5,7 +5,7 @@ import App from './App'
 import { AuthProvider } from './lib/AuthContext'
 import './index.css'
 
-const BUILD_ID = 'mapa-atalho-largura-logo-v1'
+const BUILD_ID = 'mapa-atalho-frota-link-v1'
 
 async function forceFreshOnce(): Promise<boolean> {
   const key = `doca-build:${BUILD_ID}`

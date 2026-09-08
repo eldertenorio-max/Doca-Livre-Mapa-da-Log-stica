@@ -30,7 +30,7 @@ import type { CategoriaId, Empresa, NivelIntegracaoId, OrigemCadastro } from '..
 import '../styles/mapa.css'
 import '../styles/mapa-publico.css'
 
-const MAPA_FROTA_URL = 'https://mapadafrota.com.br'
+const MAPA_FROTA_URL = 'https://ofertadecargas.docalivre.com.br/?_v=rota-publico-cache-v137#/mapa'
 const CALCULAR_ROTA_URL = 'https://ofertadecargas.docalivre.com.br/?_v=rota-publico-cache-v135#/rota'
 
 function escapeHtml(s: string) {
