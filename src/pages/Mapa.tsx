@@ -713,13 +713,18 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
         <div className="mapa-log__map-wrap">
           <div ref={mapEl} className="mapa-log__map" />
           <a
-            className="mapa-log__atalho"
+            className="mapa-log__atalho-wrap"
             href={MAPA_FROTA_URL}
             target="_blank"
             rel="noreferrer"
           >
-            <span>Mapa da</span>
-            <span>Frota</span>
+            <span className="mapa-log__atalho-logo">
+              <img src={LOGO_DOCA_LIVRE_SRC} alt="Doca Livre" />
+            </span>
+            <span className="mapa-log__atalho">
+              <span>Mapa da</span>
+              <span>Frota</span>
+            </span>
           </a>
           <div className="mapa-log__legenda-wrap" ref={legendaWrapRef}>
             {legendaAberta ? (

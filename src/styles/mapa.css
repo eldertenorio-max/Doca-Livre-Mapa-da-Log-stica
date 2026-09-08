@@ -514,11 +514,35 @@
   min-height: 360px;
 }
 
-.mapa-log__atalho {
+.mapa-log__atalho-wrap {
   position: absolute;
   top: 12px;
   right: 12px;
   z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.mapa-log__atalho-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 999px;
+  padding: 7px 16px;
+  box-shadow: 0 8px 18px rgb(0 0 0 / 0.18);
+}
+
+.mapa-log__atalho-logo img {
+  display: block;
+  height: 36px;
+  width: auto;
+}
+
+.mapa-log__atalho {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
@@ -533,11 +557,10 @@
   line-height: 1.15;
   letter-spacing: 0.01em;
   text-align: center;
-  text-decoration: none;
   box-shadow: 0 8px 18px rgb(0 0 0 / 0.28);
 }
 
-.mapa-log__atalho:hover {
+.mapa-log__atalho-wrap:hover .mapa-log__atalho {
   color: #ffd24d;
 }
 
