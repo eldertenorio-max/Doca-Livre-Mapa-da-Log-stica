@@ -40,9 +40,18 @@ function escapeHtml(s: string) {
     .replace(/>/g, '&gt;')
 }
 
-function pinHtml(e: Empresa) {
+function temCoordenada(e: Empresa) {
+  return Number.isFinite(e.lat) && Number.isFinite(e.lng)
+}
+
+function pinHtml(e: Empresa, selecionada = false) {
   const cat = categoriaPorId(e.categoria)
-  return `<div class="pin-empresa__inner" style="background:${cat.cor}" title="${escapeHtml(e.nome_fantasia)}">${cat.emoji}</div>`
+  return `<div class="pin-empresa__inner${selecionada ? ' is-selecionada' : ''}" style="background:${cat.cor}" title="${escapeHtml(e.nome_fantasia)}">${cat.emoji}</div>`
+}
+
+function popupInternoHtml(e: Empresa) {
+  const cat = categoriaPorId(e.categoria)
+  return `<div class="mapa-popup"><h3>${escapeHtml(e.nome_fantasia)}</h3><p>${escapeHtml(cat.label)} · ${escapeHtml(e.cidade)}/${escapeHtml(e.uf)}</p></div>`
 }
 
 function popupPublicoHtml(e: Empresa) {
@@ -90,6 +99,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
   const mapEl = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const layerRef = useRef<L.LayerGroup | null>(null)
+  const markersRef = useRef(new Map<string, L.Marker>())
   const [query, setQuery] = useState('')
   const catParam = searchParams.get('cat')
   const [categoria, setCategoria] = useState<CategoriaId | null>(() =>
@@ -213,23 +223,27 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     const layer = layerRef.current
     if (!map || !layer) return
     layer.clearLayers()
+    markersRef.current.clear()
 
     for (const e of filtradas) {
+      if (!temCoordenada(e)) continue
       const icon = L.divIcon({
-        className: 'pin-empresa',
-        html: pinHtml(e),
+        className: `pin-empresa${selecionada === e.id ? ' is-selecionada' : ''}`,
+        html: pinHtml(e, selecionada === e.id),
         iconSize: [36, 36],
         iconAnchor: [18, 36],
       })
-      const marker = L.marker([e.lat, e.lng], { icon })
+      const marker = L.marker([e.lat, e.lng], {
+        icon,
+        zIndexOffset: selecionada === e.id ? 1000 : 0,
+      })
       const cat = categoriaPorId(e.categoria)
-      if (visitante) {
-        marker.bindPopup(popupPublicoHtml(e), {
-          className: 'mapa-pub-leaflet',
-          maxWidth: 280,
-          minWidth: 220,
-        })
-      } else {
+      marker.bindPopup(visitante ? popupPublicoHtml(e) : popupInternoHtml(e), {
+        className: visitante ? 'mapa-pub-leaflet' : '',
+        maxWidth: 280,
+        minWidth: 220,
+      })
+      if (!visitante) {
         marker.bindTooltip(
           `<strong>${escapeHtml(e.nome_fantasia)}</strong><br/>${cat.label}<br/>${e.cidade}/${e.uf}`,
           { direction: 'top', offset: [0, -28] },
@@ -238,21 +252,39 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
           setSelecionada(e.id)
           navigate(`/empresa/${e.slug}?from=mapa`)
         })
+      } else {
+        marker.on('click', () => setSelecionada(e.id))
       }
       marker.addTo(layer)
+      markersRef.current.set(e.id, marker)
     }
 
-    if (filtradas.length === 1) {
-      map.setView([filtradas[0].lat, filtradas[0].lng], 10)
-    } else if (filtradas.length > 1) {
-      const bounds = L.latLngBounds(filtradas.map((e) => [e.lat, e.lng] as [number, number]))
+    const foco = selecionada ? filtradas.find((e) => e.id === selecionada && temCoordenada(e)) : undefined
+    if (foco) {
+      map.setView([foco.lat, foco.lng], Math.max(map.getZoom(), 13), { animate: true })
+      const marker = markersRef.current.get(foco.id)
+      window.setTimeout(() => {
+        marker?.openPopup()
+        map.panTo([foco.lat, foco.lng], { animate: true })
+      }, 80)
+      return
+    }
+
+    const comPonto = filtradas.filter(temCoordenada)
+    if (comPonto.length === 1) {
+      map.setView([comPonto[0].lat, comPonto[0].lng], 10)
+    } else if (comPonto.length > 1) {
+      const bounds = L.latLngBounds(comPonto.map((e) => [e.lat, e.lng] as [number, number]))
       map.fitBounds(bounds.pad(0.18), { maxZoom: 10 })
     }
-  }, [filtradas, navigate, visitante])
+  }, [filtradas, navigate, visitante, selecionada])
 
   function irPara(e: Empresa) {
+    if (!temCoordenada(e)) return
     setSelecionada(e.id)
-    mapRef.current?.setView([e.lat, e.lng], 12)
+    window.setTimeout(() => {
+      document.getElementById(`emp-lista-${e.id}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }, 50)
   }
 
   async function consumirBusca() {
@@ -620,7 +652,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
             {filtradas.map((e) => {
               const cat = categoriaPorId(e.categoria)
               return (
-                <li key={e.id} style={{ display: 'flex', gap: 4, alignItems: 'stretch' }}>
+                <li key={e.id} id={`emp-lista-${e.id}`} style={{ display: 'flex', gap: 4, alignItems: 'stretch' }}>
                   <button
                     type="button"
                     className={`mapa-log__emp${selecionada === e.id ? ' is-on' : ''}`}
