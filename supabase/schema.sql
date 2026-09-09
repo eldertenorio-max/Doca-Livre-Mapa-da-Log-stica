@@ -66,14 +66,18 @@ create policy "mapa_usuarios_write"
   using (true)
   with check (true);
 
-insert into public.mapa_usuarios (usuario, email, senha, nome, papel, nivel_hierarquia, superior)
+insert into public.mapa_usuarios (usuario, email, senha, nome, papel, nivel_hierarquia, superior, empresa_id, empresa_slug)
 values
-  ('Diego', 'diego@docalivre.com', 'diego123', 'Diego', 'super', 'super', null),
-  ('Elder', 'elder@docalivre.com', 'Elder123', 'Elder', 'super', 'super', null)
+  ('Diego', 'diego@docalivre.com', 'diego123', 'Diego', 'super', 'super', null, null, null),
+  ('Elder', 'elder@docalivre.com', 'Elder123', 'Elder', 'super', 'super', null, null, null),
+  ('Braspress', 'braspress@docalivre.com', 'braspress123', 'Braspress', 'empresa', 'operador', 'Diego', 'tr-braspress', 'braspress')
 on conflict (usuario) do update
   set email = excluded.email,
       senha = excluded.senha,
       nome = excluded.nome,
       papel = excluded.papel,
       nivel_hierarquia = excluded.nivel_hierarquia,
+      superior = excluded.superior,
+      empresa_id = excluded.empresa_id,
+      empresa_slug = excluded.empresa_slug,
       updated_at = now();

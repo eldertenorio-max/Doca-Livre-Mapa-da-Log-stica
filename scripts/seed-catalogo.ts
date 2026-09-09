@@ -54,6 +54,17 @@ async function main() {
         nivel_hierarquia: 'super',
         superior: null,
       },
+      {
+        usuario: 'Braspress',
+        email: 'braspress@docalivre.com',
+        senha: 'braspress123',
+        nome: 'Braspress',
+        papel: 'empresa',
+        nivel_hierarquia: 'operador',
+        superior: 'Diego',
+        empresa_id: 'tr-braspress',
+        empresa_slug: 'braspress',
+      },
     ],
     { onConflict: 'usuario' },
   )

@@ -1,4 +1,5 @@
 import type { Empresa, NivelHierarquia } from '../types'
+import { EMPRESAS } from '../data/empresas'
 import { loadEmpresasCadastro, saveEmpresaCadastro } from './cadastroStore'
 import { buscarUsuarioRemoto, salvarUsuarioRemoto, tabelaAindaNaoExiste } from './supabaseSync'
 
@@ -42,6 +43,21 @@ export const SUPER_USUARIOS: ContaUsuario[] = [
   },
 ]
 
+/** Conta de empresa do mapa, para configurar a interface como a operação vê. */
+export const USUARIOS_EMPRESA: ContaUsuario[] = [
+  {
+    usuario: 'Braspress',
+    email: 'braspress@docalivre.com',
+    senha: 'braspress123',
+    nome: 'Braspress',
+    papel: 'empresa',
+    nivelHierarquia: 'operador',
+    superior: 'Diego',
+    empresaId: 'tr-braspress',
+    empresaSlug: 'braspress',
+  },
+]
+
 function loadJson<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key)
@@ -73,7 +89,7 @@ export function isSuperUsuario(login: string) {
 
 export function loadUsuarios(): ContaUsuario[] {
   const extras = loadJson<ContaUsuario[]>(USERS_KEY, [])
-  return [...SUPER_USUARIOS, ...(Array.isArray(extras) ? extras : [])]
+  return [...SUPER_USUARIOS, ...USUARIOS_EMPRESA, ...(Array.isArray(extras) ? extras : [])]
 }
 
 export function saveUsuario(conta: ContaUsuario) {
@@ -177,7 +193,8 @@ export async function registrarEmpresa(params: {
 
 export function empresaDaSessao(sessao: Sessao | null): Empresa | undefined {
   if (!sessao?.empresaId && !sessao?.empresaSlug) return undefined
-  return loadEmpresasCadastro().find(
-    (e) => e.id === sessao.empresaId || e.slug === sessao.empresaSlug,
+  return (
+    loadEmpresasCadastro().find((e) => e.id === sessao.empresaId || e.slug === sessao.empresaSlug) ??
+    EMPRESAS.find((e) => e.id === sessao.empresaId || e.slug === sessao.empresaSlug)
   )
 }

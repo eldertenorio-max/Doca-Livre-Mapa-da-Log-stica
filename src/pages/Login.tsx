@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { LOGO_DOCA_LIVRE_SRC } from '../lib/brandAssets'
 import { ProductMark } from '../components/layout/ProductMark'
-import { SUPER_USUARIOS } from '../lib/auth'
+import { SUPER_USUARIOS, USUARIOS_EMPRESA } from '../lib/auth'
 import { useAuth } from '../lib/AuthContext'
 import { rotaInicial } from '../lib/rotasApp'
 import '../styles/auth.css'
@@ -12,6 +12,8 @@ const SUPER_HINTS = SUPER_USUARIOS.map((u) => ({
   usuario: u.usuario,
   senha: u.senha,
 }))
+
+const EMPRESA_HINT = USUARIOS_EMPRESA[0]
 
 export function LoginPage() {
   const { sessao, login } = useAuth()
@@ -31,8 +33,8 @@ export function LoginPage() {
     setTipo(next)
     setErro(null)
     if (next === 'empresa') {
-      setUsuario('')
-      setSenha('')
+      setUsuario(EMPRESA_HINT.usuario)
+      setSenha(EMPRESA_HINT.senha)
       return
     }
     const hint = SUPER_HINTS.find((h) => h.id === next)!
@@ -135,7 +137,10 @@ export function LoginPage() {
             <p>
               <strong>Superusuário Elder:</strong> Elder / Elder123
             </p>
-            <p>Os superusuários têm acesso a tudo no sistema.</p>
+            <p>
+              <strong>Empresa Braspress:</strong> Braspress / braspress123
+            </p>
+            <p>Os superusuários têm acesso a tudo no sistema. A conta Braspress abre o perfil da empresa no mapa.</p>
           </div>
         </form>
       </div>

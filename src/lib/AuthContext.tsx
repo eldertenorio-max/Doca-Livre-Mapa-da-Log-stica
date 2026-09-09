@@ -6,11 +6,13 @@ import {
   loadSessao,
   registrarEmpresa,
   saveSessao,
+  SUPER_USUARIOS,
+  USUARIOS_EMPRESA,
   type Sessao,
 } from './auth'
 import { listarEmpresas } from './cadastroStore'
 import { EMPRESA_DOCA_LIVRE } from './empresaDocaLivre'
-import { sincronizarCatalogo, unirComCatalogoLocal } from './supabaseSync'
+import { sincronizarCatalogo, unirComCatalogoLocal, salvarUsuarioRemoto } from './supabaseSync'
 import { EMPRESAS } from '../data/empresas'
 
 type AuthCtx = {
@@ -40,6 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!ativo) return
       setEmpresas(montarLista(lista))
     })
+    for (const conta of [...SUPER_USUARIOS, ...USUARIOS_EMPRESA]) {
+      void salvarUsuarioRemoto(conta).catch(() => undefined)
+    }
     return () => {
       ativo = false
     }
