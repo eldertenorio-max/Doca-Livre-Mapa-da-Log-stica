@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../lib/AuthContext'
 import { contarNotificacoesNaoLidas } from '../../lib/feedStore'
 import { LOGO_DOCA_LIVRE_SRC } from '../../lib/brandAssets'
@@ -71,6 +71,7 @@ function formatClock(d: Date) {
 
 export function AppLayout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { sessao, logout, minhaEmpresa } = useAuth()
   const [sidebarPinned, setSidebarPinned] = useState(true)
   const [sidebarHover, setSidebarHover] = useState(false)
@@ -145,6 +146,27 @@ export function AppLayout() {
           </div>
         </div>
         <div className="app-topbar-right">
+          <button
+            type="button"
+            className={`app-topbar-refresh${location.pathname.endsWith('/notificacoes') ? ' is-on' : ''}`}
+            onClick={() => navigate('/feed/notificacoes')}
+            title="Notificações"
+            aria-label={naoLidas > 0 ? `Notificações, ${naoLidas} não lidas` : 'Notificações'}
+          >
+            <svg viewBox="0 0 24 24" fill="none" width="18" height="18" aria-hidden>
+              <path
+                d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path d="M9.5 17a2.5 2.5 0 0 0 5 0" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+            </svg>
+            {naoLidas > 0 ? (
+              <span className="app-topbar-bell-badge">{naoLidas > 9 ? '9+' : naoLidas}</span>
+            ) : null}
+          </button>
           <button
             type="button"
             className="app-topbar-refresh"
@@ -253,7 +275,7 @@ export function AppLayout() {
               ...(minhaEmpresa
                 ? [{ to: '/perfil', label: 'Meu perfil', icon: <IconProfile />, end: true, badge: 0 }]
                 : []),
-              { to: '/feed', label: 'Feed notícias', icon: <IconFeed />, end: false, badge: naoLidas },
+              { to: '/feed', label: 'Feed notícias', icon: <IconFeed />, end: false, badge: 0 },
               { to: '/app/mapa', label: 'Mapa', icon: <IconMap />, end: false, badge: 0 },
             ].map((item) => (
               <NavLink

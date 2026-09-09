@@ -31,7 +31,6 @@ export function FeedPage() {
     void marcarNotificacoesLidas(sessao.usuario).then(() => recarregarNotifs())
   }, [abaNotificacoes, sessao?.usuario])
 
-  const naoLidas = notifs.filter((n) => !n.lida).length
   const podePublicar = Boolean(sessao?.isSuper || minhaEmpresa)
 
   return (
@@ -48,7 +47,7 @@ export function FeedPage() {
         </div>
       </header>
 
-      <RedeAbas naoLidas={naoLidas} />
+      <RedeAbas />
 
       {abaNotificacoes ? (
         <section className="feed__lista" aria-label="Notificações">

@@ -400,6 +400,7 @@
 }
 
 .app-topbar-refresh {
+  position: relative;
   width: 36px;
   height: 36px;
   border: 1px solid #d0d7de;
@@ -412,8 +413,25 @@
   justify-content: center;
 }
 
-.app-topbar-refresh:hover {
+.app-topbar-refresh:hover,
+.app-topbar-refresh.is-on {
   background: #eceef0;
+}
+
+.app-topbar-bell-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
 }
 
 .app-topbar-nova-carga {
