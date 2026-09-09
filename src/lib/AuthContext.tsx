@@ -10,9 +10,9 @@ import {
   USUARIOS_EMPRESA,
   type Sessao,
 } from './auth'
-import { listarEmpresas } from './cadastroStore'
+import { listarEmpresas, loadEmpresasCadastro, saveEmpresaCadastro } from './cadastroStore'
 import { EMPRESA_DOCA_LIVRE } from './empresaDocaLivre'
-import { sincronizarCatalogo, unirComCatalogoLocal, salvarUsuarioRemoto } from './supabaseSync'
+import { sincronizarCatalogo, unirComCatalogoLocal, salvarUsuarioRemoto, tabelaAindaNaoExiste } from './supabaseSync'
 import { EMPRESAS } from '../data/empresas'
 
 type AuthCtx = {
@@ -23,13 +23,26 @@ type AuthCtx = {
   logout: () => void
   cadastrar: (params: Parameters<typeof registrarEmpresa>[0]) => Promise<Sessao>
   recarregarEmpresas: () => Promise<void>
+  atualizarEmpresa: (empresa: Empresa) => Promise<void>
 }
 
 const Ctx = createContext<AuthCtx | null>(null)
 
 function montarLista(remoto: Empresa[]): Empresa[] {
   const extra = listarEmpresas().filter((e) => e.origem === 'cadastro')
-  return unirComCatalogoLocal(remoto.filter((e) => e.origem !== 'cadastro'), [...EMPRESAS, ...extra])
+  const base = unirComCatalogoLocal(
+    remoto.filter((e) => e.origem !== 'cadastro'),
+    [...EMPRESAS, ...extra],
+  )
+  const edicoes = loadEmpresasCadastro()
+  if (edicoes.length === 0) return base
+  const porId = new Map(edicoes.map((e) => [e.id, e]))
+  const porSlug = new Map(edicoes.map((e) => [e.slug, e]))
+  const ids = new Set(base.map((e) => e.id))
+  const slugs = new Set(base.map((e) => e.slug))
+  const mesclada = base.map((e) => porId.get(e.id) ?? porSlug.get(e.slug) ?? e)
+  const novas = edicoes.filter((e) => !ids.has(e.id) && !slugs.has(e.slug))
+  return [...mesclada, ...novas]
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -56,6 +69,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setEmpresas(montarLista(lista))
     }
 
+    async function atualizarEmpresa(empresa: Empresa) {
+      setEmpresas((atual) => {
+        const tem = atual.some((e) => e.id === empresa.id || e.slug === empresa.slug)
+        if (!tem) return [...atual, empresa]
+        return atual.map((e) => (e.id === empresa.id || e.slug === empresa.slug ? empresa : e))
+      })
+      try {
+        await saveEmpresaCadastro(empresa)
+      } catch (err) {
+        if (tabelaAindaNaoExiste(err)) return
+        console.warn('Perfil salvo neste aparelho; a nuvem não confirmou.', err)
+      }
+    }
+
     return {
       sessao,
       empresas,
@@ -64,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         empresaDaSessao(sessao) ??
         (sessao?.isSuper ? EMPRESA_DOCA_LIVRE : undefined),
       recarregarEmpresas,
+      atualizarEmpresa,
       async login(usuario, senha) {
         const r = await autenticar(usuario, senha)
         if (!r.ok) return r.erro

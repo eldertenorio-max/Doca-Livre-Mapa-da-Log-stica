@@ -1,9 +1,11 @@
-import { ExternalLink, Mail, MapPin } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ExternalLink, Mail, MapPin, Pencil } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { Empresa } from '../../types'
 import { FeedMural } from '../feed/FeedMural'
 import { categoriaPorId, nivelPorId } from '../../lib/categorias'
 import { labelPapelHierarquia, papelHierarquiaDaEmpresa } from '../../lib/orgHierarchy'
+import { EditarPerfilEmpresa } from './EditarPerfilEmpresa'
 import { PontoMapPreview } from './PontoMapPreview'
 import '../../styles/perfil-empresa.css'
 
@@ -24,9 +26,14 @@ function enderecoCompleto(e: Empresa) {
 type Props = {
   empresa: Empresa
   eDono?: boolean
+  podeEditar?: boolean
+  abrirEdicao?: boolean
+  onFecharEdicao?: () => void
 }
 
-export function EmpresaPerfil({ empresa: e, eDono = false }: Props) {
+export function EmpresaPerfil({ empresa: e, eDono = false, podeEditar, abrirEdicao = false, onFecharEdicao }: Props) {
+  const permitido = podeEditar ?? eDono
+  const [editando, setEditando] = useState(Boolean(permitido && abrirEdicao))
   const cat = categoriaPorId(e.categoria)
   const nivel = nivelPorId(e.nivel_integracao)
   const papel = labelPapelHierarquia(papelHierarquiaDaEmpresa(e))
@@ -34,9 +41,33 @@ export function EmpresaPerfil({ empresa: e, eDono = false }: Props) {
   const mapsUrl = `https://www.google.com/maps?q=${e.lat},${e.lng}`
   const titulo = `${e.nome_fantasia} ${e.cidade}-${e.uf}`
 
+  useEffect(() => {
+    if (permitido && abrirEdicao) setEditando(true)
+  }, [permitido, abrirEdicao, e.id])
+
+  function fecharEdicao() {
+    setEditando(false)
+    onFecharEdicao?.()
+  }
+
+  if (editando && permitido) {
+    return (
+      <article className="tv-perfil tv-perfil--fullscreen tv-perfil--in-shell">
+        <EditarPerfilEmpresa empresa={e} onCancelar={fecharEdicao} />
+      </article>
+    )
+  }
+
   return (
     <article className="tv-perfil tv-perfil--fullscreen tv-perfil--in-shell">
       <header className="tv-perfil__top">
+        {permitido ? (
+          <div className="tv-perfil__edit-bar">
+            <button type="button" className="tv-perfil__btn" onClick={() => setEditando(true)}>
+              <Pencil size={14} /> Editar página
+            </button>
+          </div>
+        ) : null}
         <div className="tv-perfil__brand-row">
           {e.logo_url ? (
             <img className="tv-perfil__logo" src={e.logo_url} alt="" />

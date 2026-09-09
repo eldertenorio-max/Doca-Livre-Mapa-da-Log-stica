@@ -1,10 +1,11 @@
 import { EmpresaPerfil } from '../components/empresa/EmpresaPerfil'
+import { SeletorEditarEmpresa } from '../components/empresa/SeletorEditarEmpresa'
 import { RedeAbas } from '../components/feed/RedeAbas'
 import { useAuth } from '../lib/AuthContext'
 import '../styles/feed.css'
 
 export function PerfilPage() {
-  const { minhaEmpresa } = useAuth()
+  const { sessao, empresas, minhaEmpresa } = useAuth()
 
   if (!minhaEmpresa) {
     return (
@@ -21,11 +22,16 @@ export function PerfilPage() {
         <div>
           <p className="feed__kicker">Doca Livre · Rede</p>
           <h1>Meu perfil</h1>
-          <p>Dados da sua operação e todas as publicações que você fez no feed.</p>
+          <p>
+            {sessao?.isSuper
+              ? 'Edite a página da Doca Livre ou abra o perfil de qualquer empresa da rede.'
+              : 'Edite a página de apresentação da sua operação e veja as publicações do feed.'}
+          </p>
         </div>
       </header>
       <RedeAbas />
-      <EmpresaPerfil empresa={minhaEmpresa} eDono />
+      {sessao?.isSuper ? <SeletorEditarEmpresa empresas={empresas} /> : null}
+      <EmpresaPerfil empresa={minhaEmpresa} eDono podeEditar />
     </div>
   )
 }

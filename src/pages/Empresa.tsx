@@ -5,14 +5,11 @@ import { EMPRESA_DOCA_LIVRE, EMPRESA_DOCA_LIVRE_SLUG } from '../lib/empresaDocaL
 
 export function EmpresaPage() {
   const { slug } = useParams()
-  const [params] = useSearchParams()
-  const { empresas, minhaEmpresa } = useAuth()
-  const empresa =
-    slug === EMPRESA_DOCA_LIVRE_SLUG
-      ? EMPRESA_DOCA_LIVRE
-      : slug
-        ? empresas.find((e) => e.slug === slug)
-        : undefined
+  const [params, setParams] = useSearchParams()
+  const { sessao, empresas, minhaEmpresa } = useAuth()
+  const empresa = slug
+    ? empresas.find((e) => e.slug === slug) ?? (slug === EMPRESA_DOCA_LIVRE_SLUG ? EMPRESA_DOCA_LIVRE : undefined)
+    : undefined
   const from = params.get('from')
   const voltarTo = from === 'kanban' ? '/kanban' : from === 'hierarquia' ? '/hierarquia' : from === 'feed' ? '/feed' : '/app/mapa'
   const voltarLabel =
@@ -24,6 +21,8 @@ export function EmpresaPage() {
           ? 'Voltar ao feed'
           : 'Voltar ao mapa'
   const eDono = Boolean(minhaEmpresa && empresa && minhaEmpresa.id === empresa.id)
+  const podeEditar = Boolean(sessao?.isSuper || eDono)
+  const abrirEdicao = params.get('editar') === '1'
 
   if (!empresa) {
     return (
@@ -44,7 +43,18 @@ export function EmpresaPage() {
           </Link>
         </p>
       ) : null}
-      <EmpresaPerfil empresa={empresa} eDono={eDono} />
+      <EmpresaPerfil
+        empresa={empresa}
+        eDono={eDono}
+        podeEditar={podeEditar}
+        abrirEdicao={abrirEdicao}
+        onFecharEdicao={() => {
+          if (!params.has('editar')) return
+          const next = new URLSearchParams(params)
+          next.delete('editar')
+          setParams(next, { replace: true })
+        }}
+      />
     </div>
   )
 }
