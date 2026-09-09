@@ -19,6 +19,7 @@ import {
   cidadesDoCadastro,
   empresasPorNome,
   frasesSugestaoRapida,
+  nomeMarca,
   labelTipoSugestao,
   semAcento,
   sugerirBusca,
@@ -167,6 +168,12 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     return filtradas.filter((e) => ids.has(e.id))
   }, [filtradas, porNome])
 
+  const escolhaDeUnidade = porNome.length > 1
+  const pinsNoMapa = useMemo(
+    () => (escolhaDeUnidade ? listaExibida.filter((e) => e.id === selecionada) : listaExibida),
+    [escolhaDeUnidade, listaExibida, selecionada],
+  )
+
   const sugestoes = useMemo(() => sugerirBusca(query, empresas, 10), [query, empresas])
 
   const contagem = useMemo(() => {
@@ -255,7 +262,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     layer.clearLayers()
     markersRef.current.clear()
 
-    for (const e of listaExibida) {
+    for (const e of pinsNoMapa) {
       if (!temCoordenada(e)) continue
       const marker = L.marker([e.lat, e.lng], {
         icon: pinIcon(e, false),
@@ -289,9 +296,10 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
       markersRef.current.set(e.id, marker)
     }
 
-    const comPonto = listaExibida.filter(temCoordenada)
-    const aguardarEscolha = query.trim().length >= 2 && porNome.length > 0
-    if (!aguardarEscolha) {
+    if (escolhaDeUnidade && !selecionada) {
+      map.setView([-14.2, -51.9], 4)
+    } else if (!selecionada) {
+      const comPonto = pinsNoMapa.filter(temCoordenada)
       if (comPonto.length === 1) {
         map.setView([comPonto[0].lat, comPonto[0].lng], 12)
       } else if (comPonto.length > 1) {
@@ -300,7 +308,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
       }
     }
     window.setTimeout(() => map.invalidateSize(), 80)
-  }, [listaExibida, navigate, visitante, query, porNome.length])
+  }, [pinsNoMapa, navigate, visitante, escolhaDeUnidade, selecionada])
 
   useEffect(() => {
     for (const e of listaExibida) {
@@ -373,10 +381,19 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     else if (s.tipo === 'origem') setOrigens((a) => toggleItem(a, (s.valor || s.texto) as OrigemCadastro))
     else if (s.tipo === 'lugar') setCidades((a) => toggleItem(a, s.valor || s.texto))
     else if (s.tipo === 'empresa') {
-      setQuery(s.texto)
-      if (s.valor) {
+      if (!s.valor) {
+        setQuery(s.texto)
+      } else {
         const e = empresas.find((x) => x.id === s.valor)
-        if (e) irPara(e)
+        if (!e) {
+          setQuery(s.texto)
+        } else {
+          const marca = nomeMarca(e)
+          const irmaos = empresasPorNome(empresas, marca)
+          setQuery(marca)
+          const filialEspecifica = Boolean(e.hierarquia_superior) || e.nome_fantasia.includes(' — ')
+          if (irmaos.length <= 1 || filialEspecifica) irPara(e)
+        }
       }
     }
     setSugestoesAbertas(false)
@@ -467,7 +484,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
         </header>
 
       <div className="mapa-log__layout">
-        <aside className="mapa-log__lista">
+        <aside className={`mapa-log__lista${escolhaDeUnidade ? ' is-escolha' : ''}`}>
           <div className="mapa-log__search">
             <label className="mapa-log__cats-title" htmlFor="busca-mapa">
               Pesquisar
@@ -714,9 +731,11 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
           </div>
 
           <p className="mapa-log__result">
-            {porNome.length > 0
-              ? `${listaExibida.length} empresa(s) para “${query.trim()}” — clique para ver no mapa`
-              : `${listaExibida.length} empresa(s) no mapa`}
+            {escolhaDeUnidade
+              ? `Escolha a unidade (${listaExibida.length}) — clique na lista para ver no mapa`
+              : porNome.length > 0
+                ? `${listaExibida.length} empresa(s) para “${query.trim()}” — clique para ver no mapa`
+                : `${listaExibida.length} empresa(s) no mapa`}
           </p>
           <ul className="mapa-log__empresas">
             {listaExibida.map((e) => {
@@ -732,7 +751,11 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
                       {cat.emoji}
                     </span>
                     <span>
-                      <span className="mapa-log__emp-nome">{e.nome_fantasia}</span>
+                      <span className="mapa-log__emp-nome">
+                        {escolhaDeUnidade && !e.hierarquia_superior
+                          ? `${e.nome_fantasia} (matriz)`
+                          : e.nome_fantasia}
+                      </span>
                       <span className="mapa-log__emp-meta">
                         {cat.label} · {e.cidade}/{e.uf}
                       </span>

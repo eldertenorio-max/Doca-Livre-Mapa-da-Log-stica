@@ -126,6 +126,12 @@ export function toggleItem<T>(lista: T[], valor: T): T[] {
   return lista.includes(valor) ? lista.filter((x) => x !== valor) : [...lista, valor]
 }
 
+export function nomeMarca(e: Empresa) {
+  const n = e.nome_fantasia
+  const sep = n.indexOf(' — ')
+  return sep >= 0 ? n.slice(0, sep) : n
+}
+
 export function empresasPorNome(empresas: Empresa[], termo: string): Empresa[] {
   const q = semAcento(termo).trim()
   if (q.length < 2) return []
@@ -135,7 +141,12 @@ export function empresasPorNome(empresas: Empresa[], termo: string): Empresa[] {
       const razao = semAcento(e.razao_social)
       return nome.includes(q) || razao.includes(q)
     })
-    .sort((a, b) => a.nome_fantasia.localeCompare(b.nome_fantasia, 'pt-BR') || a.cidade.localeCompare(b.cidade, 'pt-BR'))
+    .sort((a, b) => {
+      const aMatriz = a.hierarquia_superior ? 1 : 0
+      const bMatriz = b.hierarquia_superior ? 1 : 0
+      if (aMatriz !== bMatriz) return aMatriz - bMatriz
+      return a.cidade.localeCompare(b.cidade, 'pt-BR') || a.nome_fantasia.localeCompare(b.nome_fantasia, 'pt-BR')
+    })
 }
 
 export function slugify(nome: string) {

@@ -323,6 +323,17 @@
   gap: 8px;
 }
 
+.mapa-log__lista.is-escolha .mapa-log__filtros {
+  display: none;
+}
+
+.mapa-log__lista.is-escolha .mapa-log__result {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #0f172a;
+  background: #f9db00;
+}
+
 .mapa-log__filtro {
   position: relative;
 }
@@ -727,5 +738,9 @@
   }
   .mapa-log__lista {
     max-height: 42vh;
+  }
+  .mapa-log__lista.is-escolha {
+    max-height: none;
+    min-height: 52vh;
   }
 }
