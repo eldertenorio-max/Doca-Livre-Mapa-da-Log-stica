@@ -50,15 +50,40 @@ async function upsertLote<T extends { id?: string; usuario?: string }>(tabela: s
 
 export async function buscarEmpresasRemotas(): Promise<Empresa[] | null> {
   if (!supabase) return null
-  const { data, error } = await supabase.from('mapa_empresas').select('payload').limit(4000)
-  if (error) {
-    console.warn('Supabase empresas:', error.message)
-    return null
+  const lista: Empresa[] = []
+  const pagina = 1000
+  for (let from = 0; from < 8000; from += pagina) {
+    const { data, error } = await supabase
+      .from('mapa_empresas')
+      .select('payload')
+      .range(from, from + pagina - 1)
+    if (error) {
+      console.warn('Supabase empresas:', error.message)
+      return lista.length > 0 ? lista : null
+    }
+    const fatia = (data ?? [])
+      .map((row) => empresaDeLinha(row as LinhaEmpresa))
+      .filter((e): e is Empresa => Boolean(e))
+    lista.push(...fatia)
+    if (fatia.length < pagina) break
   }
-  const lista = (data ?? [])
-    .map((row) => empresaDeLinha(row as LinhaEmpresa))
-    .filter((e): e is Empresa => Boolean(e))
   return lista
+}
+
+/** Catálogo remoto + empresas do pacote que ainda não estão no banco (filiais, seeds). */
+export function unirComCatalogoLocal(remoto: Empresa[], locais: Empresa[] = EMPRESAS): Empresa[] {
+  const ids = new Set<string>()
+  const slugs = new Set<string>()
+  const out: Empresa[] = []
+  const add = (e: Empresa) => {
+    if (!e?.id || !e.slug || ids.has(e.id) || slugs.has(e.slug)) return
+    ids.add(e.id)
+    slugs.add(e.slug)
+    out.push(e)
+  }
+  for (const e of remoto) add(e)
+  for (const e of locais) add(e)
+  return out
 }
 
 export async function salvarEmpresaRemota(empresa: Empresa) {
@@ -89,9 +114,8 @@ export async function sincronizarCatalogo(): Promise<Empresa[]> {
     await enviarCatalogoSeVazio(EMPRESAS)
     const remotas = await buscarEmpresasRemotas()
     if (remotas && remotas.length > 0) {
-      const ids = new Set(remotas.map((e) => e.id))
-      const slugs = new Set(remotas.map((e) => e.slug))
-      const novas = EMPRESAS.filter((e) => !ids.has(e.id) && !slugs.has(e.slug))
+      const completo = unirComCatalogoLocal(remotas, EMPRESAS)
+      const novas = completo.filter((e) => !remotas.some((r) => r.id === e.id))
       if (novas.length > 0) {
         try {
           const lote = 80
@@ -101,9 +125,8 @@ export async function sincronizarCatalogo(): Promise<Empresa[]> {
         } catch (err) {
           console.warn('Falha ao enviar unidades novas ao Supabase', err)
         }
-        return [...remotas, ...novas]
       }
-      return remotas
+      return completo
     }
   } catch (err) {
     console.warn('Falha ao sincronizar catálogo com o Supabase', err)

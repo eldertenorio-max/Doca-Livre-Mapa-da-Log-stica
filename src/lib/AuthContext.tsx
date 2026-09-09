@@ -10,7 +10,8 @@ import {
 } from './auth'
 import { listarEmpresas } from './cadastroStore'
 import { EMPRESA_DOCA_LIVRE } from './empresaDocaLivre'
-import { sincronizarCatalogo } from './supabaseSync'
+import { sincronizarCatalogo, unirComCatalogoLocal } from './supabaseSync'
+import { EMPRESAS } from '../data/empresas'
 
 type AuthCtx = {
   sessao: Sessao | null
@@ -24,6 +25,11 @@ type AuthCtx = {
 
 const Ctx = createContext<AuthCtx | null>(null)
 
+function montarLista(remoto: Empresa[]): Empresa[] {
+  const extra = listarEmpresas().filter((e) => e.origem === 'cadastro')
+  return unirComCatalogoLocal(remoto.filter((e) => e.origem !== 'cadastro'), [...EMPRESAS, ...extra])
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessao, setSessao] = useState<Sessao | null>(() => loadSessao())
   const [empresas, setEmpresas] = useState<Empresa[]>(() => listarEmpresas())
@@ -32,10 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let ativo = true
     void sincronizarCatalogo().then((lista) => {
       if (!ativo) return
-      const extra = listarEmpresas().filter((e) => e.origem === 'cadastro')
-      const ids = new Set(lista.map((e) => e.id))
-      const slugs = new Set(lista.map((e) => e.slug))
-      setEmpresas([...lista.filter((e) => e.origem !== 'cadastro'), ...extra.filter((e) => !ids.has(e.id) && !slugs.has(e.slug))])
+      setEmpresas(montarLista(lista))
     })
     return () => {
       ativo = false
@@ -45,10 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthCtx>(() => {
     async function recarregarEmpresas() {
       const lista = await sincronizarCatalogo()
-      const extra = listarEmpresas().filter((e) => e.origem === 'cadastro')
-      const ids = new Set(lista.map((e) => e.id))
-      const slugs = new Set(lista.map((e) => e.slug))
-      setEmpresas([...lista.filter((e) => e.origem !== 'cadastro'), ...extra.filter((e) => !ids.has(e.id) && !slugs.has(e.slug))])
+      setEmpresas(montarLista(lista))
     }
 
     return {
