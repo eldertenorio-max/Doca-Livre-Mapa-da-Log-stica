@@ -5,6 +5,9 @@ import type { Empresa } from '../../types'
 import { FeedMural } from '../feed/FeedMural'
 import { categoriaPorId, nivelPorId } from '../../lib/categorias'
 import { labelPapelHierarquia, papelHierarquiaDaEmpresa } from '../../lib/orgHierarchy'
+import { useAuth } from '../../lib/AuthContext'
+import { operacaoDaEmpresa } from '../../lib/perfilOperacional'
+import { UF_NOMES } from '../../lib/geo'
 import { EditarPerfilEmpresa } from './EditarPerfilEmpresa'
 import { PontoMapPreview } from './PontoMapPreview'
 import '../../styles/perfil-empresa.css'
@@ -32,11 +35,13 @@ type Props = {
 }
 
 export function EmpresaPerfil({ empresa: e, eDono = false, podeEditar, abrirEdicao = false, onFecharEdicao }: Props) {
+  const { empresas } = useAuth()
   const permitido = podeEditar ?? eDono
   const [editando, setEditando] = useState(Boolean(permitido && abrirEdicao))
   const cat = categoriaPorId(e.categoria)
   const nivel = nivelPorId(e.nivel_integracao)
   const papel = labelPapelHierarquia(papelHierarquiaDaEmpresa(e))
+  const op = operacaoDaEmpresa(e, empresas)
   const wa = whatsappLink(e.telefone)
   const mapsUrl = `https://www.google.com/maps?q=${e.lat},${e.lng}`
   const titulo = `${e.nome_fantasia} ${e.cidade}-${e.uf}`
@@ -121,7 +126,37 @@ export function EmpresaPerfil({ empresa: e, eDono = false, podeEditar, abrirEdic
             <h2>Área de atuação</h2>
             <p>{e.area_atuacao}</p>
             {e.cobertura ? <p>{e.cobertura}</p> : null}
+            {op.ufs.length > 1 ? (
+              <p className="tv-perfil__chips">
+                {op.ufs.map((uf) => (
+                  <span key={uf} className="tv-perfil__chip">
+                    {uf} {UF_NOMES[uf as keyof typeof UF_NOMES] ?? ''}
+                  </span>
+                ))}
+              </p>
+            ) : null}
           </section>
+
+          {(op.tiposCarga.length || op.modais.length || op.equipamentos.length) ? (
+            <section className="tv-perfil__section">
+              <h2>Operação para pesquisa</h2>
+              {op.tiposCarga.length ? (
+                <p>
+                  <strong>Tipos de carga:</strong> {op.tiposCarga.join(' · ')}
+                </p>
+              ) : null}
+              {op.modais.length ? (
+                <p>
+                  <strong>Modais:</strong> {op.modais.join(' · ')}
+                </p>
+              ) : null}
+              {op.equipamentos.length ? (
+                <p>
+                  <strong>Frota e equipamentos:</strong> {op.equipamentos.join(' · ')}
+                </p>
+              ) : null}
+            </section>
+          ) : null}
 
           <section className="tv-perfil__section">
             <h2>Categorias e funções</h2>
@@ -140,6 +175,7 @@ export function EmpresaPerfil({ empresa: e, eDono = false, podeEditar, abrirEdic
             <ul className="tv-perfil__contato">
               {e.telefone ? <li>Telefone / WhatsApp: {e.telefone}</li> : null}
               {e.email ? <li>E-mail: {e.email}</li> : null}
+              {op.horario ? <li>Horário de atendimento: {op.horario}</li> : null}
               <li className="tv-perfil__endereco">
                 <MapPin size={14} aria-hidden />
                 <span>

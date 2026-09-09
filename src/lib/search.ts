@@ -5,6 +5,8 @@ import {
   SUBCATEGORIAS_POR_CATEGORIA,
 } from './categorias'
 import { ORIGEM_META, REGIOES } from './painelStats'
+import { textoOperacaoParaBusca } from './perfilOperacional'
+import { UF_NOMES } from './geo'
 
 export function semAcento(s: string) {
   return s
@@ -35,15 +37,27 @@ const SINONIMOS: Record<string, string[]> = {
   tms: ['tms', 'gestao de transporte', 'frete'],
   frio: ['frio', 'frigorifico', 'refrigerado', 'cadeia fria', 'camara fria'],
   refrigerado: ['frio', 'frigorifico', 'refrigerado', 'cadeia fria'],
+  fracionada: ['fracionada', 'fracionado', 'carga fracionada'],
+  lotacao: ['lotacao', 'carga lotacao', 'fechada'],
+  perigosa: ['perigosa', 'cargas perigosas', 'produtos perigosos'],
+  granel: ['granel'],
+  ecommerce: ['ecommerce', 'e-commerce', 'last mile', 'encomenda'],
+  coleta: ['coleta', 'coleta e entrega'],
+  carreta: ['carreta', 'cavalo mecanico'],
+  bitrem: ['bitrem'],
+  cabotagem: ['cabotagem', 'maritimo'],
+  aereo: ['aereo', 'carga aerea'],
 }
 
-function textoEmpresa(e: Empresa): string {
+function textoEmpresa(e: Empresa, catalogo: Empresa[]): string {
+  const nomeUf = UF_NOMES[e.uf as keyof typeof UF_NOMES] ?? e.uf
   return semAcento(
     [
       e.nome_fantasia,
       e.razao_social,
       e.cidade,
       e.uf,
+      nomeUf,
       e.categoria,
       e.subcategorias.join(' '),
       e.tags.join(' '),
@@ -53,6 +67,7 @@ function textoEmpresa(e: Empresa): string {
       e.area_atuacao,
       e.cobertura ?? '',
       e.cnpj ?? '',
+      textoOperacaoParaBusca(e, catalogo),
     ].join(' '),
   )
 }
@@ -104,7 +119,7 @@ export function aplicarFiltros(empresas: Empresa[], f: FiltrosMapa): Empresa[] {
   if (tokens.length === 0) return lista
 
   return lista.filter((e) => {
-    const hay = textoEmpresa(e)
+    const hay = textoEmpresa(e, empresas)
     return tokens.every((t) => casaToken(hay, t))
   })
 }
@@ -180,9 +195,16 @@ const FRASES_CURADAS: SugestaoBusca[] = [
   { texto: 'manutenção de empilhadeiras', tipo: 'funcao' },
   { texto: 'carga fracionada', tipo: 'funcao' },
   { texto: 'carga lotação', tipo: 'funcao' },
+  { texto: 'cargas perigosas', tipo: 'funcao' },
+  { texto: 'granel', tipo: 'funcao' },
   { texto: 'last mile', tipo: 'funcao' },
+  { texto: 'e-commerce', tipo: 'funcao' },
+  { texto: 'coleta e entrega', tipo: 'funcao' },
   { texto: 'cadeia fria', tipo: 'funcao' },
   { texto: 'transporte refrigerado', tipo: 'funcao' },
+  { texto: 'carga aérea', tipo: 'funcao' },
+  { texto: 'cabotagem', tipo: 'funcao' },
+  { texto: 'carreta', tipo: 'funcao' },
   { texto: 'operador logístico', tipo: 'funcao' },
   { texto: 'armazenagem', tipo: 'funcao' },
   { texto: 'WMS', tipo: 'funcao' },
@@ -230,6 +252,9 @@ function catalogoSugestoes(empresas: Empresa[]): SugestaoBusca[] {
   for (const subs of Object.values(SUBCATEGORIAS_POR_CATEGORIA)) {
     for (const s of subs) lista.push({ texto: s, tipo: 'funcao' })
   }
+  for (const t of ['Carga fracionada', 'Carga lotação', 'Cargas perigosas', 'Granel', 'E-commerce / last mile', 'Carga aérea', 'Cabotagem', 'Carreta', 'Empilhadeira']) {
+    lista.push({ texto: t, tipo: 'funcao' })
+  }
   const ufs = new Set<string>()
   for (const e of empresas) {
     ufs.add(e.uf)
@@ -252,6 +277,8 @@ function catalogoSugestoes(empresas: Empresa[]): SugestaoBusca[] {
   }
   for (const uf of [...ufs].sort()) {
     lista.push({ texto: uf, tipo: 'uf', valor: uf, detalhe: 'Estado' })
+    const nome = UF_NOMES[uf as keyof typeof UF_NOMES]
+    if (nome) lista.push({ texto: nome, tipo: 'uf', valor: uf, detalhe: uf })
   }
 
   const vistos = new Set<string>()

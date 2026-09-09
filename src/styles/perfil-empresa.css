@@ -618,7 +618,24 @@
   border-radius: 12px;
 }
 
-.tv-perfil__edit-bar {
+.tv-perfil__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+}
+
+.tv-perfil__chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0f172a;
+}
   display: flex;
   justify-content: flex-end;
   margin-bottom: 12px;

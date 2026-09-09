@@ -3,6 +3,7 @@ import type { CategoriaId, Empresa, NivelIntegracaoId, PapelHierarquia } from '.
 import { CATEGORIAS, NIVEIS_INTEGRACAO, SUBCATEGORIAS_POR_CATEGORIA } from '../../lib/categorias'
 import { maskCnpj, somenteDigitosCnpj } from '../../lib/cnpj'
 import { UFS_BR, geocodificarEndereco } from '../../lib/geo'
+import { EQUIPAMENTOS, MODAIS, TIPOS_CARGA } from '../../lib/perfilOperacional'
 import { PAPEIS_HIERARQUIA } from '../../lib/orgHierarchy'
 import { toggleItem } from '../../lib/search'
 import { useAuth } from '../../lib/AuthContext'
@@ -74,6 +75,11 @@ export function EditarPerfilEmpresa({ empresa, onCancelar }: Props) {
   const [subcategorias, setSubcategorias] = useState<string[]>(empresa.subcategorias)
   const [nivelIntegracao, setNivelIntegracao] = useState<NivelIntegracaoId | ''>(empresa.nivel_integracao || '')
   const [papelHierarquia, setPapelHierarquia] = useState<PapelHierarquia | ''>(empresa.papel_hierarquia || '')
+  const [ufsAtendidas, setUfsAtendidas] = useState<string[]>(empresa.ufs_atendidas ?? [])
+  const [tiposCarga, setTiposCarga] = useState<string[]>(empresa.tipos_carga ?? [])
+  const [modais, setModais] = useState<string[]>(empresa.modais ?? [])
+  const [equipamentos, setEquipamentos] = useState<string[]>(empresa.equipamentos ?? [])
+  const [horario, setHorario] = useState(empresa.horario || '')
 
   const subsOpcoes = SUBCATEGORIAS_POR_CATEGORIA[categoria] ?? []
 
@@ -107,6 +113,11 @@ export function EditarPerfilEmpresa({ empresa, onCancelar }: Props) {
     setSubcategorias(empresa.subcategorias)
     setNivelIntegracao(empresa.nivel_integracao || '')
     setPapelHierarquia(empresa.papel_hierarquia || '')
+    setUfsAtendidas(empresa.ufs_atendidas ?? [])
+    setTiposCarga(empresa.tipos_carga ?? [])
+    setModais(empresa.modais ?? [])
+    setEquipamentos(empresa.equipamentos ?? [])
+    setHorario(empresa.horario || '')
     setErro(null)
     setOk(null)
     setGeoHint(null)
@@ -206,6 +217,11 @@ export function EditarPerfilEmpresa({ empresa, onCancelar }: Props) {
       subcategorias,
       nivel_integracao: nivelIntegracao || undefined,
       papel_hierarquia: papelHierarquia || empresa.papel_hierarquia,
+      ufs_atendidas: ufsAtendidas.length ? ufsAtendidas : undefined,
+      tipos_carga: tiposCarga.length ? tiposCarga : undefined,
+      modais: modais.length ? modais : undefined,
+      equipamentos: equipamentos.length ? equipamentos : undefined,
+      horario: horario.trim() || undefined,
     }
 
     setSalvando(true)
@@ -375,11 +391,74 @@ export function EditarPerfilEmpresa({ empresa, onCancelar }: Props) {
       </fieldset>
 
       <fieldset className="tv-perfil-form__bloco">
+        <legend>Dados que entram na pesquisa</legend>
+        <p className="tv-perfil-form__hint">
+          Marque o que a empresa faz de verdade. A busca do mapa usa estes campos: quem procura “fracionada”, “Bahia” ou “empilhadeira” encontra este perfil.
+        </p>
+        <p className="tv-perfil-form__hint">Estados atendidos</p>
+        <div className="tv-perfil-form__subs">
+          {UFS_BR.map((u) => (
+            <label key={u} className="tv-perfil-form__check">
+              <input
+                type="checkbox"
+                checked={ufsAtendidas.includes(u)}
+                onChange={() => setUfsAtendidas((atual) => toggleItem(atual, u))}
+              />
+              {u}
+            </label>
+          ))}
+        </div>
+        <p className="tv-perfil-form__hint">Tipos de carga</p>
+        <div className="tv-perfil-form__subs">
+          {TIPOS_CARGA.map((t) => (
+            <label key={t} className="tv-perfil-form__check">
+              <input
+                type="checkbox"
+                checked={tiposCarga.includes(t)}
+                onChange={() => setTiposCarga((atual) => toggleItem(atual, t))}
+              />
+              {t}
+            </label>
+          ))}
+        </div>
+        <p className="tv-perfil-form__hint">Modais</p>
+        <div className="tv-perfil-form__subs">
+          {MODAIS.map((t) => (
+            <label key={t} className="tv-perfil-form__check">
+              <input
+                type="checkbox"
+                checked={modais.includes(t)}
+                onChange={() => setModais((atual) => toggleItem(atual, t))}
+              />
+              {t}
+            </label>
+          ))}
+        </div>
+        <p className="tv-perfil-form__hint">Frota e equipamentos</p>
+        <div className="tv-perfil-form__subs">
+          {EQUIPAMENTOS.map((t) => (
+            <label key={t} className="tv-perfil-form__check">
+              <input
+                type="checkbox"
+                checked={equipamentos.includes(t)}
+                onChange={() => setEquipamentos((atual) => toggleItem(atual, t))}
+              />
+              {t}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="tv-perfil-form__bloco">
         <legend>Contato e endereço</legend>
         <div className="tv-perfil-form__grid">
           <label>
             Telefone / WhatsApp
             <input value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+          </label>
+          <label>
+            Horário de atendimento
+            <input value={horario} onChange={(e) => setHorario(e.target.value)} placeholder="Seg a sex, 8h às 18h" />
           </label>
           <label>
             E-mail

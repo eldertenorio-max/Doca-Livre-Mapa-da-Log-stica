@@ -68,4 +68,14 @@ export interface Empresa {
   /** Papel na hierarquia Doca Livre: operador, embarcador, unidade ou transportadora. */
   papel_hierarquia?: PapelHierarquia
   responsavel_nome?: string
+  /** Estados em que coleta ou entrega, além da sede. */
+  ufs_atendidas?: string[]
+  /** Tipos de carga ou operação (fracionada, lotação, refrigerada…). */
+  tipos_carga?: string[]
+  /** Modais: rodoviário, aéreo, marítimo, ferroviário, multimodal. */
+  modais?: string[]
+  /** Frota e equipamentos usados na operação. */
+  equipamentos?: string[]
+  /** Horário de coleta / atendimento. */
+  horario?: string
 }
