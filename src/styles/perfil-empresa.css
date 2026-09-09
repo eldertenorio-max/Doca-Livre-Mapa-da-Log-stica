@@ -625,6 +625,45 @@
   margin: 10px 0 0;
 }
 
+.tv-perfil__ficha {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) 1fr;
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.tv-perfil__ficha dt {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.tv-perfil__ficha dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.tv-perfil__unidades {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px 12px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-perfil__unidades a {
+  color: #0f172a;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.tv-perfil__unidades a:hover {
+  text-decoration: underline;
+}
+
 .tv-perfil__chip {
   display: inline-flex;
   align-items: center;
@@ -883,7 +922,8 @@
     align-items: flex-start;
   }
 
-  .tv-perfil-form__grid {
+  .tv-perfil-form__grid,
+  .tv-perfil__ficha {
     grid-template-columns: 1fr;
   }
 

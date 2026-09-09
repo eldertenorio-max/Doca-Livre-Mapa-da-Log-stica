@@ -78,4 +78,21 @@ export interface Empresa {
   equipamentos?: string[]
   /** Horário de coleta / atendimento. */
   horario?: string
+  /** Ano de fundação, só se a empresa informar. */
+  ano_fundacao?: number
+  porte?: 'mei' | 'pequena' | 'media' | 'grande'
+  /** Ex.: cerca de 80 veículos. */
+  frota_resumo?: string
+  /** Ex.: 12 docas · 8.000 m². */
+  estrutura_resumo?: string
+  certificacoes?: string[]
+  /** RNTRC só entra se a empresa preencher. Não inventar. */
+  rntrc?: string
+  instagram_url?: string
+  linkedin_url?: string
+  whatsapp?: string
+  rastreamento?: boolean
+  seguro_carga?: boolean
+  coleta_domiciliar?: boolean
+  publico_alvo?: 'b2b' | 'b2c' | 'ambos'
 }

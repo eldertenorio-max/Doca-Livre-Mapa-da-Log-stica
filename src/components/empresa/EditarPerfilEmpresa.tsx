@@ -3,7 +3,7 @@ import type { CategoriaId, Empresa, NivelIntegracaoId, PapelHierarquia } from '.
 import { CATEGORIAS, NIVEIS_INTEGRACAO, SUBCATEGORIAS_POR_CATEGORIA } from '../../lib/categorias'
 import { maskCnpj, somenteDigitosCnpj } from '../../lib/cnpj'
 import { UFS_BR, geocodificarEndereco } from '../../lib/geo'
-import { EQUIPAMENTOS, MODAIS, TIPOS_CARGA } from '../../lib/perfilOperacional'
+import { CERTIFICACOES, EQUIPAMENTOS, MODAIS, PORTES, PUBLICOS, TIPOS_CARGA } from '../../lib/perfilOperacional'
 import { PAPEIS_HIERARQUIA } from '../../lib/orgHierarchy'
 import { toggleItem } from '../../lib/search'
 import { useAuth } from '../../lib/AuthContext'
@@ -80,6 +80,21 @@ export function EditarPerfilEmpresa({ empresa, onCancelar }: Props) {
   const [modais, setModais] = useState<string[]>(empresa.modais ?? [])
   const [equipamentos, setEquipamentos] = useState<string[]>(empresa.equipamentos ?? [])
   const [horario, setHorario] = useState(empresa.horario || '')
+  const [anoFundacao, setAnoFundacao] = useState(empresa.ano_fundacao ? String(empresa.ano_fundacao) : '')
+  const [porte, setPorte] = useState(empresa.porte || '')
+  const [publicoAlvo, setPublicoAlvo] = useState(empresa.publico_alvo || '')
+  const [frotaResumo, setFrotaResumo] = useState(empresa.frota_resumo || '')
+  const [estruturaResumo, setEstruturaResumo] = useState(empresa.estrutura_resumo || '')
+  const [rntrc, setRntrc] = useState(empresa.rntrc || '')
+  const [certificacoes, setCertificacoes] = useState<string[]>(empresa.certificacoes ?? [])
+  const [instagramUrl, setInstagramUrl] = useState(empresa.instagram_url || '')
+  const [linkedinUrl, setLinkedinUrl] = useState(empresa.linkedin_url || '')
+  const [whatsapp, setWhatsapp] = useState(empresa.whatsapp || '')
+  const [rastreamento, setRastreamento] = useState(empresa.rastreamento == null ? '' : empresa.rastreamento ? 'sim' : 'nao')
+  const [seguroCarga, setSeguroCarga] = useState(empresa.seguro_carga == null ? '' : empresa.seguro_carga ? 'sim' : 'nao')
+  const [coletaDomiciliar, setColetaDomiciliar] = useState(
+    empresa.coleta_domiciliar == null ? '' : empresa.coleta_domiciliar ? 'sim' : 'nao',
+  )
 
   const subsOpcoes = SUBCATEGORIAS_POR_CATEGORIA[categoria] ?? []
 
@@ -118,6 +133,19 @@ export function EditarPerfilEmpresa({ empresa, onCancelar }: Props) {
     setModais(empresa.modais ?? [])
     setEquipamentos(empresa.equipamentos ?? [])
     setHorario(empresa.horario || '')
+    setAnoFundacao(empresa.ano_fundacao ? String(empresa.ano_fundacao) : '')
+    setPorte(empresa.porte || '')
+    setPublicoAlvo(empresa.publico_alvo || '')
+    setFrotaResumo(empresa.frota_resumo || '')
+    setEstruturaResumo(empresa.estrutura_resumo || '')
+    setRntrc(empresa.rntrc || '')
+    setCertificacoes(empresa.certificacoes ?? [])
+    setInstagramUrl(empresa.instagram_url || '')
+    setLinkedinUrl(empresa.linkedin_url || '')
+    setWhatsapp(empresa.whatsapp || '')
+    setRastreamento(empresa.rastreamento == null ? '' : empresa.rastreamento ? 'sim' : 'nao')
+    setSeguroCarga(empresa.seguro_carga == null ? '' : empresa.seguro_carga ? 'sim' : 'nao')
+    setColetaDomiciliar(empresa.coleta_domiciliar == null ? '' : empresa.coleta_domiciliar ? 'sim' : 'nao')
     setErro(null)
     setOk(null)
     setGeoHint(null)
@@ -175,6 +203,12 @@ export function EditarPerfilEmpresa({ empresa, onCancelar }: Props) {
       setErro('CNPJ incompleto. Deixe em branco ou informe os 14 dígitos.')
       return
     }
+    const anoN = anoFundacao.trim() ? Number(anoFundacao) : undefined
+    const anoAtual = new Date().getFullYear()
+    if (anoN != null && (!Number.isInteger(anoN) || anoN < 1800 || anoN > anoAtual)) {
+      setErro(`Ano de fundação inválido. Use um ano entre 1800 e ${anoAtual}, ou deixe em branco.`)
+      return
+    }
     const latN = Number(lat.replace(',', '.'))
     const lngN = Number(lng.replace(',', '.'))
     if (!Number.isFinite(latN) || !Number.isFinite(lngN)) {
@@ -222,6 +256,19 @@ export function EditarPerfilEmpresa({ empresa, onCancelar }: Props) {
       modais: modais.length ? modais : undefined,
       equipamentos: equipamentos.length ? equipamentos : undefined,
       horario: horario.trim() || undefined,
+      ano_fundacao: anoN,
+      porte: (porte || undefined) as Empresa['porte'],
+      publico_alvo: (publicoAlvo || undefined) as Empresa['publico_alvo'],
+      frota_resumo: frotaResumo.trim() || undefined,
+      estrutura_resumo: estruturaResumo.trim() || undefined,
+      rntrc: rntrc.trim() || undefined,
+      certificacoes: certificacoes.length ? certificacoes : undefined,
+      instagram_url: instagramUrl.trim() || undefined,
+      linkedin_url: linkedinUrl.trim() || undefined,
+      whatsapp: whatsapp.trim() || undefined,
+      rastreamento: rastreamento === '' ? undefined : rastreamento === 'sim',
+      seguro_carga: seguroCarga === '' ? undefined : seguroCarga === 'sim',
+      coleta_domiciliar: coletaDomiciliar === '' ? undefined : coletaDomiciliar === 'sim',
     }
 
     setSalvando(true)
@@ -290,6 +337,90 @@ export function EditarPerfilEmpresa({ empresa, onCancelar }: Props) {
             Responsável
             <input value={responsavelNome} onChange={(e) => setResponsavelNome(e.target.value)} />
           </label>
+        </div>
+      </fieldset>
+
+      <fieldset className="tv-perfil-form__bloco">
+        <legend>Ficha da empresa</legend>
+        <p className="tv-perfil-form__hint">
+          Preencha só o que for real. RNTRC, frota e certificações não devem ser inventados.
+        </p>
+        <div className="tv-perfil-form__grid">
+          <label>
+            Ano de fundação
+            <input value={anoFundacao} onChange={(e) => setAnoFundacao(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="Ex.: 1962" />
+          </label>
+          <label>
+            Porte
+            <select value={porte} onChange={(e) => setPorte(e.target.value)}>
+              <option value="">Não informado</option>
+              {PORTES.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Quem a empresa atende
+            <select value={publicoAlvo} onChange={(e) => setPublicoAlvo(e.target.value)}>
+              <option value="">Não informado</option>
+              {PUBLICOS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            RNTRC
+            <input value={rntrc} onChange={(e) => setRntrc(e.target.value)} placeholder="Somente se a empresa tiver" />
+          </label>
+          <label>
+            Frota
+            <input value={frotaResumo} onChange={(e) => setFrotaResumo(e.target.value)} placeholder="Ex.: cerca de 80 veículos" />
+          </label>
+          <label>
+            Estrutura
+            <input value={estruturaResumo} onChange={(e) => setEstruturaResumo(e.target.value)} placeholder="Ex.: 12 docas · 8.000 m²" />
+          </label>
+          <label>
+            Rastreamento
+            <select value={rastreamento} onChange={(e) => setRastreamento(e.target.value)}>
+              <option value="">Não informado</option>
+              <option value="sim">Sim</option>
+              <option value="nao">Não</option>
+            </select>
+          </label>
+          <label>
+            Seguro da carga
+            <select value={seguroCarga} onChange={(e) => setSeguroCarga(e.target.value)}>
+              <option value="">Não informado</option>
+              <option value="sim">Sim</option>
+              <option value="nao">Não</option>
+            </select>
+          </label>
+          <label>
+            Coleta domiciliar
+            <select value={coletaDomiciliar} onChange={(e) => setColetaDomiciliar(e.target.value)}>
+              <option value="">Não informado</option>
+              <option value="sim">Sim</option>
+              <option value="nao">Não</option>
+            </select>
+          </label>
+        </div>
+        <p className="tv-perfil-form__hint">Certificações</p>
+        <div className="tv-perfil-form__subs">
+          {CERTIFICACOES.map((c) => (
+            <label key={c} className="tv-perfil-form__check">
+              <input
+                type="checkbox"
+                checked={certificacoes.includes(c)}
+                onChange={() => setCertificacoes((atual) => toggleItem(atual, c))}
+              />
+              {c}
+            </label>
+          ))}
         </div>
       </fieldset>
 
@@ -453,8 +584,12 @@ export function EditarPerfilEmpresa({ empresa, onCancelar }: Props) {
         <legend>Contato e endereço</legend>
         <div className="tv-perfil-form__grid">
           <label>
-            Telefone / WhatsApp
+            Telefone
             <input value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+          </label>
+          <label>
+            WhatsApp
+            <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="Se for diferente do telefone" />
           </label>
           <label>
             Horário de atendimento
@@ -467,6 +602,14 @@ export function EditarPerfilEmpresa({ empresa, onCancelar }: Props) {
           <label>
             Site
             <input value={siteUrl} onChange={(e) => setSiteUrl(e.target.value)} placeholder="https://…" />
+          </label>
+          <label>
+            Instagram
+            <input value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} placeholder="https://instagram.com/…" />
+          </label>
+          <label>
+            LinkedIn
+            <input value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} placeholder="https://linkedin.com/company/…" />
           </label>
           <label>
             CEP

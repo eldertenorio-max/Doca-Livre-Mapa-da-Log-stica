@@ -6,8 +6,9 @@ import { FeedMural } from '../feed/FeedMural'
 import { categoriaPorId, nivelPorId } from '../../lib/categorias'
 import { labelPapelHierarquia, papelHierarquiaDaEmpresa } from '../../lib/orgHierarchy'
 import { useAuth } from '../../lib/AuthContext'
-import { operacaoDaEmpresa } from '../../lib/perfilOperacional'
+import { operacaoDaEmpresa, PORTES, PUBLICOS, unidadesDaRede } from '../../lib/perfilOperacional'
 import { UF_NOMES } from '../../lib/geo'
+import { nomeMarca } from '../../lib/search'
 import { EditarPerfilEmpresa } from './EditarPerfilEmpresa'
 import { PontoMapPreview } from './PontoMapPreview'
 import '../../styles/perfil-empresa.css'
@@ -42,7 +43,24 @@ export function EmpresaPerfil({ empresa: e, eDono = false, podeEditar, abrirEdic
   const nivel = nivelPorId(e.nivel_integracao)
   const papel = labelPapelHierarquia(papelHierarquiaDaEmpresa(e))
   const op = operacaoDaEmpresa(e, empresas)
-  const wa = whatsappLink(e.telefone)
+  const rede = unidadesDaRede(e, empresas)
+  const outrasUnidades = rede.filter((x) => x.id !== e.id)
+  const porte = PORTES.find((p) => p.id === e.porte)
+  const publico = PUBLICOS.find((p) => p.id === e.publico_alvo)
+  const wa = whatsappLink(e.whatsapp || e.telefone)
+  const temFicha = Boolean(
+    e.ano_fundacao ||
+      porte ||
+      publico ||
+      e.frota_resumo ||
+      e.estrutura_resumo ||
+      e.rntrc ||
+      e.responsavel_nome ||
+      (e.certificacoes && e.certificacoes.length) ||
+      e.rastreamento != null ||
+      e.seguro_carga != null ||
+      e.coleta_domiciliar != null,
+  )
   const mapsUrl = `https://www.google.com/maps?q=${e.lat},${e.lng}`
   const titulo = `${e.nome_fantasia} ${e.cidade}-${e.uf}`
 
@@ -137,6 +155,101 @@ export function EmpresaPerfil({ empresa: e, eDono = false, podeEditar, abrirEdic
             ) : null}
           </section>
 
+          {temFicha ? (
+            <section className="tv-perfil__section">
+              <h2>Ficha da empresa</h2>
+              <dl className="tv-perfil__ficha">
+                {e.ano_fundacao ? (
+                  <>
+                    <dt>No mercado desde</dt>
+                    <dd>{e.ano_fundacao}</dd>
+                  </>
+                ) : null}
+                {porte ? (
+                  <>
+                    <dt>Porte</dt>
+                    <dd>{porte.label}</dd>
+                  </>
+                ) : null}
+                {publico ? (
+                  <>
+                    <dt>Atende</dt>
+                    <dd>{publico.label}</dd>
+                  </>
+                ) : null}
+                {e.frota_resumo ? (
+                  <>
+                    <dt>Frota</dt>
+                    <dd>{e.frota_resumo}</dd>
+                  </>
+                ) : null}
+                {e.estrutura_resumo ? (
+                  <>
+                    <dt>Estrutura</dt>
+                    <dd>{e.estrutura_resumo}</dd>
+                  </>
+                ) : null}
+                {e.rntrc ? (
+                  <>
+                    <dt>RNTRC</dt>
+                    <dd>{e.rntrc}</dd>
+                  </>
+                ) : null}
+                {e.responsavel_nome ? (
+                  <>
+                    <dt>Responsável</dt>
+                    <dd>{e.responsavel_nome}</dd>
+                  </>
+                ) : null}
+                {e.certificacoes?.length ? (
+                  <>
+                    <dt>Certificações</dt>
+                    <dd>{e.certificacoes.join(' · ')}</dd>
+                  </>
+                ) : null}
+                {e.rastreamento != null ? (
+                  <>
+                    <dt>Rastreamento</dt>
+                    <dd>{e.rastreamento ? 'Sim' : 'Não'}</dd>
+                  </>
+                ) : null}
+                {e.seguro_carga != null ? (
+                  <>
+                    <dt>Seguro da carga</dt>
+                    <dd>{e.seguro_carga ? 'Sim' : 'Não'}</dd>
+                  </>
+                ) : null}
+                {e.coleta_domiciliar != null ? (
+                  <>
+                    <dt>Coleta domiciliar</dt>
+                    <dd>{e.coleta_domiciliar ? 'Sim' : 'Não'}</dd>
+                  </>
+                ) : null}
+              </dl>
+            </section>
+          ) : null}
+
+          {outrasUnidades.length > 0 ? (
+            <section className="tv-perfil__section">
+              <h2>Unidades da {nomeMarca(e)}</h2>
+              <p>
+                {rede.length} {rede.length === 1 ? 'unidade' : 'unidades'} desta rede no mapa.
+              </p>
+              <ul className="tv-perfil__unidades">
+                {outrasUnidades.slice(0, 40).map((u) => (
+                  <li key={u.id}>
+                    <Link to={`/empresa/${u.slug}`}>
+                      {u.hierarquia_superior ? `${u.cidade}/${u.uf}` : `Matriz · ${u.cidade}/${u.uf}`}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              {outrasUnidades.length > 40 ? (
+                <p>Mostrando 40 de {outrasUnidades.length}. Use a busca do mapa para ver as demais.</p>
+              ) : null}
+            </section>
+          ) : null}
+
           {(op.tiposCarga.length || op.modais.length || op.equipamentos.length) ? (
             <section className="tv-perfil__section">
               <h2>Operação para pesquisa</h2>
@@ -173,7 +286,8 @@ export function EmpresaPerfil({ empresa: e, eDono = false, podeEditar, abrirEdic
           <section className="tv-perfil__section">
             <h2>Contato</h2>
             <ul className="tv-perfil__contato">
-              {e.telefone ? <li>Telefone / WhatsApp: {e.telefone}</li> : null}
+              {e.telefone ? <li>Telefone: {e.telefone}</li> : null}
+              {e.whatsapp && e.whatsapp !== e.telefone ? <li>WhatsApp: {e.whatsapp}</li> : null}
               {e.email ? <li>E-mail: {e.email}</li> : null}
               {op.horario ? <li>Horário de atendimento: {op.horario}</li> : null}
               <li className="tv-perfil__endereco">
@@ -233,6 +347,16 @@ export function EmpresaPerfil({ empresa: e, eDono = false, podeEditar, abrirEdic
             {e.site_url ? (
               <a className="tv-perfil__btn" href={e.site_url} target="_blank" rel="noreferrer">
                 <ExternalLink size={14} /> Site
+              </a>
+            ) : null}
+            {e.instagram_url ? (
+              <a className="tv-perfil__btn" href={e.instagram_url} target="_blank" rel="noreferrer">
+                Instagram
+              </a>
+            ) : null}
+            {e.linkedin_url ? (
+              <a className="tv-perfil__btn" href={e.linkedin_url} target="_blank" rel="noreferrer">
+                LinkedIn
               </a>
             ) : null}
             <a className="tv-perfil__btn" href={mapsUrl} target="_blank" rel="noreferrer">

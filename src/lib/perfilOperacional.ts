@@ -160,6 +160,40 @@ export function operacaoDaEmpresa(e: Empresa, catalogo: Empresa[] = []): Operaca
   }
 }
 
+export const PORTES = [
+  { id: 'mei', label: 'MEI / micro' },
+  { id: 'pequena', label: 'Pequena' },
+  { id: 'media', label: 'Média' },
+  { id: 'grande', label: 'Grande' },
+] as const
+
+export const PUBLICOS = [
+  { id: 'b2b', label: 'Empresas (B2B)' },
+  { id: 'b2c', label: 'Consumidor final (B2C)' },
+  { id: 'ambos', label: 'Empresas e consumidor' },
+] as const
+
+export const CERTIFICACOES = [
+  'ISO 9001',
+  'ISO 14001',
+  'SASSMAQ',
+  'OEA',
+  'ANVISA',
+  'Rastreamento em tempo real',
+] as const
+
+export function unidadesDaRede(e: Empresa, catalogo: Empresa[]) {
+  const matrizId = e.hierarquia_superior || e.id
+  return catalogo
+    .filter((x) => x.id === matrizId || x.hierarquia_superior === matrizId)
+    .sort((a, b) => {
+      const aMatriz = a.hierarquia_superior ? 1 : 0
+      const bMatriz = b.hierarquia_superior ? 1 : 0
+      if (aMatriz !== bMatriz) return aMatriz - bMatriz
+      return a.cidade.localeCompare(b.cidade, 'pt-BR') || a.nome_fantasia.localeCompare(b.nome_fantasia, 'pt-BR')
+    })
+}
+
 export function textoOperacaoParaBusca(e: Empresa, catalogo: Empresa[]) {
   const op = operacaoDaEmpresa(e, catalogo)
   const nomesUf = op.ufs.map((uf) => UF_NOMES[uf as keyof typeof UF_NOMES] ?? uf)
@@ -170,11 +204,19 @@ export function textoOperacaoParaBusca(e: Empresa, catalogo: Empresa[]) {
     e.servicos_intro,
     e.referencias ?? '',
     e.horario ?? '',
+    e.frota_resumo ?? '',
+    e.estrutura_resumo ?? '',
+    e.rntrc ?? '',
+    (e.certificacoes ?? []).join(' '),
+    e.ano_fundacao ? String(e.ano_fundacao) : '',
     op.ufs.join(' '),
     nomesUf.join(' '),
     op.tiposCarga.join(' '),
     op.modais.join(' '),
     op.equipamentos.join(' '),
+    e.rastreamento ? 'rastreamento rastreador' : '',
+    e.seguro_carga ? 'seguro de carga' : '',
+    e.coleta_domiciliar ? 'coleta domiciliar' : '',
   ]
     .filter(Boolean)
     .join(' ')
