@@ -27,6 +27,14 @@ function RequireSuper() {
   return <Outlet />
 }
 
+/** Link antigo `/mapa`: visitante vai para o endereço seco; logado continua vendo aqui. */
+function MapaPublicoRota() {
+  const { sessao } = useAuth()
+  const { search } = useLocation()
+  if (!sessao) return <Navigate to={{ pathname: '/', search }} replace />
+  return <MapaPage publico />
+}
+
 /** Visitante fica na raiz com o mapa; quem tem login vai para a área do sistema. */
 function Inicio() {
   const { sessao } = useAuth()
@@ -39,7 +47,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/cadastro" element={<CadastroEmpresaPage />} />
-      <Route path="/mapa" element={<MapaPage publico />} />
+      <Route path="/mapa" element={<MapaPublicoRota />} />
       <Route path="/" element={<Inicio />} />
 
       <Route element={<RequireAuth />}>

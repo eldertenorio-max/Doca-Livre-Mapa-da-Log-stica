@@ -125,7 +125,7 @@ export function LoginPage() {
               Cadastre sua empresa
             </Link>
             {' · '}
-            <Link to="/mapa" className="portal-login__cadastro-link">
+            <Link to="/" className="portal-login__cadastro-link">
               Ver o mapa
             </Link>
           </p>

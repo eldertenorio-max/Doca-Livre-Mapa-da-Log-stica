@@ -290,7 +290,7 @@ export function CadastroEmpresaPage() {
           ) : (
             <p className="cadastro-step-desc">
               Depois do cadastro você entra no perfil, no feed e no mapa ilimitado.{' '}
-              <Link to="/mapa">Voltar ao mapa</Link>
+              <Link to="/">Voltar ao mapa</Link>
             </p>
           )}
 

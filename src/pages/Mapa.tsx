@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Info } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -105,6 +105,7 @@ function destacarTrecho(texto: string, query: string) {
 export function MapaPage({ publico = false }: { publico?: boolean }) {
   const { empresas, sessao } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
   const mapEl = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -131,7 +132,8 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
   const buscaWrapRef = useRef<HTMLDivElement>(null)
   const filtrosWrapRef = useRef<HTMLDivElement>(null)
   const legendaWrapRef = useRef<HTMLDivElement>(null)
-  const basePath = publico ? '/mapa' : '/app/mapa'
+  // Mantém o endereço em que o mapa já está (raiz para visitante) ao filtrar.
+  const basePath = publico ? pathname : '/app/mapa'
   const visitante = publico && !sessao
   const [restam, setRestam] = useState(() =>
     visitante ? estadoBuscasPublicas().restam : MAPA_PUBLICO_LIMITE_BUSCAS,
@@ -456,7 +458,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     <div className={`mapa-log animate-fade-up${publico ? ' mapa-log--publico' : ''}`}>
       {publico ? (
         <header className="mapa-log__brandbar">
-          <Link to="/mapa" className="mapa-log__brand">
+          <Link to={basePath} className="mapa-log__brand">
             <img src={LOGO_DOCA_LIVRE_SRC} alt="Doca Livre" />
             <span>
               <strong>Doca Livre</strong>
