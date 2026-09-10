@@ -27,9 +27,10 @@ function RequireSuper() {
   return <Outlet />
 }
 
+/** Visitante fica na raiz com o mapa; quem tem login vai para a área do sistema. */
 function Inicio() {
   const { sessao } = useAuth()
-  if (!sessao) return <Navigate to="/mapa" replace />
+  if (!sessao) return <MapaPage publico />
   return <Navigate to={rotaInicial(sessao)} replace />
 }
 

@@ -7,8 +7,8 @@ alwaysApply: true
 
 Há **dois endereços** do mesmo mapa:
 
-- Link à parte (visitante): `#/mapa` — `<MapaPage publico />`
-- Aba Mapa do sistema (logado): `#/app/mapa` — `<MapaPage />`
+- Link à parte (visitante): `/` e `/mapa` — `<MapaPage publico />`
+- Aba Mapa do sistema (logado): `/app/mapa` — `<MapaPage />`
 
 Os dois **devem ficar iguais**: mesma busca, mesma lista, mesmos pins, mesmas filiais, mesmos filtros, mesmos atalhos (Mapa da Frota, Calcular rota) e o mesmo catálogo.
 

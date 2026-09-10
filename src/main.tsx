@@ -1,11 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { HashRouter } from 'react-router-dom'
+import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './lib/AuthContext'
 import './index.css'
 
-const BUILD_ID = 'mapa-ficha-empresa-v1'
+const BUILD_ID = 'mapa-endereco-limpo-v1'
 
 async function forceFreshOnce(): Promise<boolean> {
   const key = `doca-build:${BUILD_ID}`
@@ -51,14 +51,34 @@ async function forceFreshOnce(): Promise<boolean> {
   return true
 }
 
+/** Endereço sem `?_v` e sem `#/`, aceitando os links antigos com hash. */
+function enderecoLimpo(): string | null {
+  const u = new URL(window.location.href)
+  let mudou = u.searchParams.has('_v')
+  u.searchParams.delete('_v')
+
+  if (u.hash.startsWith('#/')) {
+    const rota = new URL(u.hash.slice(1), window.location.origin)
+    u.pathname = rota.pathname
+    for (const [chave, valor] of rota.searchParams) u.searchParams.set(chave, valor)
+    u.hash = ''
+    mudou = true
+  }
+
+  return mudou ? `${u.pathname}${u.search}` : null
+}
+
 function boot() {
+  const limpo = enderecoLimpo()
+  if (limpo) window.history.replaceState(null, '', limpo)
+
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <HashRouter>
+      <BrowserRouter>
         <AuthProvider>
           <App />
         </AuthProvider>
-      </HashRouter>
+      </BrowserRouter>
     </StrictMode>,
   )
 }
