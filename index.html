@@ -12,6 +12,18 @@
       content="Doca Livre — Mapa da Logística. Encontre transportadoras, operadores logísticos e fornecedores do setor."
     />
     <title>Doca Livre — Mapa da Logística</title>
+    <script>
+      // Endereço oficial é mapadalogistica.com.br: quem chega pelo antigo é levado para lá.
+      ;(function () {
+        var host = location.hostname
+        var antigo = host.endsWith('.onrender.com') || host === 'www.mapadalogistica.com.br'
+        if (antigo && !location.search.includes('semredirect')) {
+          location.replace(
+            'https://mapadalogistica.com.br' + location.pathname + location.search + location.hash,
+          )
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
