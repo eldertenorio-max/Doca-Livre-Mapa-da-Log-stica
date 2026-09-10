@@ -138,7 +138,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
   const [restam, setRestam] = useState(() =>
     visitante ? estadoBuscasPublicas().restam : MAPA_PUBLICO_LIMITE_BUSCAS,
   )
-  const [showPaywall, setShowPaywall] = useState(false)
+  const [showPaywall, setShowPaywall] = useState<false | 'buscas' | 'contato'>(false)
   const consumindoRef = useRef(false)
 
   useEffect(() => {
@@ -350,7 +350,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
       const consumo = await registrarBuscaPublicaRemota()
       setRestam(consumo.restam)
       if (!consumo.ok) {
-        setShowPaywall(true)
+        setShowPaywall('buscas')
         return false
       }
       return true
@@ -361,7 +361,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
 
   function abrirEmpresa(e: Empresa) {
     if (visitante) {
-      setShowPaywall(true)
+      setShowPaywall('contato')
       return
     }
     navigate(`/empresa/${e.slug}?from=mapa`)
@@ -431,15 +431,21 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
     navigate(next ? `${basePath}?cat=${next}` : basePath)
   }
 
+  // O popup do Leaflet corta a subida do evento, por isso escuto na descida (captura).
+  useEffect(() => {
+    function abrirPaywall(ev: MouseEvent) {
+      const el = ev.target as HTMLElement | null
+      if (!el?.closest?.('.js-mapa-pub-assinar')) return
+      ev.preventDefault()
+      setShowPaywall('contato')
+    }
+    document.addEventListener('click', abrirPaywall, true)
+    return () => document.removeEventListener('click', abrirPaywall, true)
+  }, [])
+
   useEffect(() => {
     function fecharFora(ev: MouseEvent) {
       const alvo = ev.target as Node
-      const el = ev.target as HTMLElement | null
-      if (el?.closest?.('.js-mapa-pub-assinar')) {
-        ev.preventDefault()
-        setShowPaywall(true)
-        return
-      }
       if (!buscaWrapRef.current?.contains(alvo)) {
         setSugestoesAbertas(false)
       }
@@ -583,7 +589,7 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
                 : ''}
             </p>
             {visitante && restam === 0 ? (
-              <button type="button" className="mapa-log__assinar" onClick={() => setShowPaywall(true)}>
+              <button type="button" className="mapa-log__assinar" onClick={() => setShowPaywall('buscas')}>
                 Assinar para continuar
               </button>
             ) : null}
@@ -833,8 +839,9 @@ export function MapaPage({ publico = false }: { publico?: boolean }) {
           <div className="mapa-pub-modal__card mapa-pub-modal__card--planos">
             <h2 id="mapa-pub-pay-title">Escolha um plano</h2>
             <p>
-              As {MAPA_PUBLICO_LIMITE_BUSCAS} buscas grátis de hoje acabaram. Assine para continuar no
-              mapa e ver contato das empresas.
+              {showPaywall === 'contato'
+                ? 'Telefone, WhatsApp e CNPJ das empresas ficam liberados para assinantes. Assine para falar direto com quem você achou no mapa.'
+                : `As ${MAPA_PUBLICO_LIMITE_BUSCAS} buscas grátis de hoje acabaram. Assine para continuar no mapa e ver contato das empresas.`}
             </p>
             <div className="mapa-pub-planos">
               {PLANOS_PUBLICOS.map((plano) => (
