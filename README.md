@@ -28,4 +28,8 @@ Abre em `http://localhost:5174`.
 3. Repositório: `https://github.com/eldertenorio-max/Doca-Livre-Mapa-da-Log-stica.git`
 4. No Render, abra o [Blueprint deste repositório](https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2Feldertenorio-max%2FDoca-Livre-Mapa-da-Log-stica) e aplique. O `render.yaml` já define build, start e as variáveis públicas do Supabase.
 
+Endereço do site: `https://mapadalogistica.com.br` (o `doca-livre-mapa-da-log-stica.onrender.com` continua respondendo).
+
+DNS no Registro.br: `A` em `@` para `216.24.57.1` e `CNAME` em `www` para `doca-livre-mapa-da-log-stica.onrender.com`, sem registro `AAAA`. O Render emite o certificado sozinho.
+
 Login super: **Diego / diego123** e **Elder / Elder123**.

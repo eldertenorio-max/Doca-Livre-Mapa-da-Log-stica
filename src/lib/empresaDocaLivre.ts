@@ -10,7 +10,7 @@ export const EMPRESA_DOCA_LIVRE: Empresa = {
   razao_social: 'Doca Livre',
   nome_fantasia: 'Doca Livre',
   email: 'diego@docalivre.com',
-  site_url: 'https://doca-livre-mapa-da-log-stica.onrender.com',
+  site_url: 'https://mapadalogistica.com.br',
   logo_url: LOGO_DOCA_LIVRE_SRC,
   cidade: 'São Paulo',
   uf: 'SP',
