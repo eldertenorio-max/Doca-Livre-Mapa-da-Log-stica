@@ -675,6 +675,8 @@
   font-weight: 700;
   color: #0f172a;
 }
+
+.tv-perfil__edit-bar {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 12px;
